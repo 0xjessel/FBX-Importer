@@ -1,0 +1,21 @@
+doctype
+html(lang="en")
+  head
+    include includes/head
+
+  body
+    div.container-narrow
+      include includes/header
+
+      div.form
+        h1 Upload zip file
+        p.
+          Request an archive of your xanga <a
+          href="http://www.xanga.com/private/archives.aspx">here</a>
+          and then upload your "archive.zip" (without quotations) file here.
+
+        form(method="post", action="/processing", enctype="multipart/form-data")
+          input(type="file", accept="application/zip", name="archive")
+
+          div.form-actions
+            button(type="submit", class="btn btn-primary") Upload

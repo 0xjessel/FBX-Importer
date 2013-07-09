@@ -5,7 +5,9 @@
 var express   = require('express')
   , graph     = require('fbgraph')
   , app       = module.exports = express()
-  , conf      = require('./conf.js');
+  , conf      = require('./conf.js')
+  , util      = require('./util.js')
+  , fs        = require('fs');
 
 // Configuration
 
@@ -19,7 +21,7 @@ app.configure(function(){
 });
 
 app.configure('development', function(){
-  app.use(express.errorHandler({ dumpExceptions: true, showStack: true })); 
+  app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
 });
 
 app.configure('production', function(){
@@ -58,7 +60,7 @@ app.get('/auth/facebook', function(req, res) {
     , "client_secret":  conf.client_secret
     , "code":           req.query.code
   }, function (err, facebookRes) {
-    res.redirect('/UserHasLoggedIn');
+    res.redirect('/upload');
   });
 
 
@@ -66,8 +68,24 @@ app.get('/auth/facebook', function(req, res) {
 
 
 // user gets sent here after being authorized
-app.get('/UserHasLoggedIn', function(req, res) {
-  res.render("index", { title: "Logged In" });
+app.get('/upload', function(req, res) {
+  res.render("upload", { title: "Logged In" });
+});
+
+// user gets sent here after uploading a zip file
+app.post('/processing', function(req, res) {
+  var file = req.files.archive;
+
+  if (file.name !== 'archive.zip') {
+
+  }
+
+  if (file.type !== 'application/x-zip-compressed') {
+
+  }
+
+  util.processFile(file.path);
+  res.redirect("/");
 });
 
 
