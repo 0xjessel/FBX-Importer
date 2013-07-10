@@ -6,13 +6,12 @@ exports.processFile = function(path) {
   var zip = new AdmZip(path);
   var zipEntries = zip.getEntries();
 
-  zip.readAsTextAsync(zipEntries[0], function(data) {
-    console.log(data);
-  });
+  zipEntries.forEach(function(zipEntry) {
+    zip.readAsTextAsync(zipEntry, exports.parseHTMLFile);
+  })
 };
 
 exports.parseHTMLFile = function(data) {
-  
 };
 
 exports.createFBNote = function(title, message) {
