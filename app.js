@@ -55,9 +55,9 @@ app.get('/auth/facebook', function(req, res) {
   // code is set
   // we'll send that and get the access token
   graph.authorize({
-      "client_id":      conf.client_id
-    , "redirect_uri":   conf.redirect_uri
-    , "client_secret":  conf.client_secret
+      "client_id":      conf.fb.client_id
+    , "redirect_uri":   conf.fb.redirect_uri
+    , "client_secret":  conf.fb.client_secret
     , "code":           req.query.code
   }, function (err, facebookRes) {
     res.redirect('/upload');
