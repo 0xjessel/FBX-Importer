@@ -96,6 +96,9 @@ app.post('/processing', function(req, res) {
         { title: "Upload ZIP File", privacyString: privacyString, errors: errors }
       );
     });
+
+    // delete the files
+    fs.unlink(file.path);
   }
 });
 
