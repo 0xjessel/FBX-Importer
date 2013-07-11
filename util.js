@@ -3,11 +3,26 @@ var cheerio = require('cheerio')
   , fs      = require('fs')
   , AdmZip  = require('adm-zip');
 
+exports.getPrivacySetting = function (callback) {
+  var privacyMap = {};
+  privacyMap['SELF'] = 'Only Me';
+  privacyMap['FRIENDS_OF_FRIENDS'] = 'Friends of Friends';
+  privacyMap['ALL_FRIENDS'] = 'Friends';
+  privacyMap['CUSTOM'] = 'Custom';
+  privacyMap['EVERYONE'] = 'Public';
+
+  var query = 'SELECT value FROM privacy_setting WHERE name=\'default_stream_privacy\'';
+
+  graph.fql(query, function(err, res) {
+    var value = res.data[0].value;
+
+    callback(privacyMap[value]);
+  })
+};
+
 exports.processFile = function(path) {
   var zip = new AdmZip(path);
   var zipEntries = zip.getEntries();
-
-//  zip.readAsTextAsync(zipEntries[24], exports.parseHTMLFile);
 
   var index = 0;
 
@@ -18,6 +33,9 @@ exports.processFile = function(path) {
         index++;
         parseZipEntry();
       });
+    } else {
+      // delete the files
+      fs.unlink(path);
     }
   }
 
@@ -69,7 +87,6 @@ function getBlogData($, elem) {
   }
 
   return { 'title': title, 'message': message };
-  //createFBNote(title, message);
 }
 
 function createFBNote(title, message, callback) {

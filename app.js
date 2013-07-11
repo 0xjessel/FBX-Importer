@@ -31,7 +31,7 @@ app.configure('production', function(){
 // Routes
 
 app.get('/', function(req, res){
-  res.render("index", { title: "click link to connect" });
+  res.render("index", { title: "FBX" });
 });
 
 app.get('/auth/facebook', function(req, res) {
@@ -69,12 +69,21 @@ app.get('/auth/facebook', function(req, res) {
 
 // user gets sent here after being authorized
 app.get('/upload', function(req, res) {
-  res.render("upload", { title: "Logged In" });
+  util.getPrivacySetting(function(privacyString) {
+    console.log(privacyString);
+    res.render(
+      "upload",
+      { title: "Upload ZIP File", privacyString: privacyString }
+    );
+  });
 });
 
 // user gets sent here after uploading a zip file
 app.post('/processing', function(req, res) {
   var file = req.files.archive;
+  
+  // not sure if this is necessary..but better safe than sorry
+  fs.chmod(file.path, '600');
 
   if (file.name !== 'archive.zip') {
 

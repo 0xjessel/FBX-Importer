@@ -9,10 +9,17 @@ html(lang="en")
 
       div.form
         h1 Upload zip file
-        p.
-          Request an archive of your xanga <a
-          href="http://www.xanga.com/private/archives.aspx">here</a>
-          and then upload your "archive.zip" (without quotations) file here.
+        p
+          | Request an archive of your xanga
+          a(href="http://www.xanga.com/private/archives.aspx")  here
+          |  and then upload your "archive.zip" (without quotations) file here.
+
+        p
+          | Your FB Notes will be published with the privacy setting
+          b  #{privacyString}
+          | . Please make absolutely sure this is correct.  If you want to
+          | change it, go to Facebook > Account Settings > Apps > FBX > Edit to
+          | change the publishing privacy.
 
         form(method="post", action="/processing", enctype="multipart/form-data")
           input(type="file", accept="application/zip", name="archive")
