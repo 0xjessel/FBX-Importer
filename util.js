@@ -1,9 +1,35 @@
-var cheerio = require('cheerio')
-  , graph   = require('fbgraph')
-  , fs      = require('fs')
-  , AdmZip  = require('adm-zip');
+var cheerio   = require('cheerio')
+  , graph     = require('fbgraph')
+  , fs        = require('fs')
+  , AdmZip    = require('adm-zip')
+  , Validator = require('validator').Validator;
 
-exports.getPrivacySetting = function (callback) {
+exports.validateFile = function(file) {
+  Validator.prototype.error = function (msg) {
+      this._errors.push(msg);
+      return this;
+  }
+
+  Validator.prototype.getErrors = function () {
+      return this._errors;
+  }
+
+  var validator = new Validator();
+
+  validator.check(
+    file.name,
+    'File must be named "archive.zip" (without quotes)'
+  ).equals('archive.zip');
+
+  validator.check(
+    file.type,
+    'File must be in zip format'
+  ).equals('application/x-zip-compressed');
+
+  return validator.getErrors();
+}
+
+exports.getPrivacySetting = function(callback) {
   var privacyMap = {};
   privacyMap['SELF'] = 'Only Me';
   privacyMap['FRIENDS_OF_FRIENDS'] = 'Friends of Friends';

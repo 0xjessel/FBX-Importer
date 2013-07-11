@@ -9,6 +9,7 @@ var express   = require('express')
   , util      = require('./util.js')
   , fs        = require('fs');
 
+
 // Configuration
 
 app.configure(function(){
@@ -66,14 +67,12 @@ app.get('/auth/facebook', function(req, res) {
 
 });
 
-
 // user gets sent here after being authorized
 app.get('/upload', function(req, res) {
   util.getPrivacySetting(function(privacyString) {
-    console.log(privacyString);
     res.render(
       "upload",
-      { title: "Upload ZIP File", privacyString: privacyString }
+      { title: "Upload ZIP File", privacyString: privacyString, errors: {}}
     );
   });
 });
@@ -81,21 +80,23 @@ app.get('/upload', function(req, res) {
 // user gets sent here after uploading a zip file
 app.post('/processing', function(req, res) {
   var file = req.files.archive;
-  
+
   // not sure if this is necessary..but better safe than sorry
   fs.chmod(file.path, '600');
 
-  if (file.name !== 'archive.zip') {
+  var errors = util.validateFile(file);
 
+  if (errors.length === 0) {
+    util.processFile(file.path);
+    res.redirect("/");
+  } else {
+    util.getPrivacySetting(function(privacyString) {
+      res.render(
+        "upload",
+        { title: "Upload ZIP File", privacyString: privacyString, errors: errors }
+      );
+    });
   }
-
-  if (file.type !== 'application/x-zip-compressed') {
-
-  }
-
-  util.processFile(file.path);
-
-  res.redirect("/");
 });
 
 

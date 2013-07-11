@@ -3,11 +3,26 @@ html(lang="en")
   head
     include includes/head
 
+
   body
+    - function isEmptyObject(obj) {
+    -      var name;
+    -      for (name in obj) {
+    -        return false;
+    -      }
+    -      return true;
+    -    }
     div.container-narrow
       include includes/header
 
       div.form
+        - if (isEmptyObject(errors) == false)
+          div.alert.alert-error
+            p.errorMessage= "The following errors occurred:"
+            ul
+            - each error in errors
+              li= error
+
         h1 Upload zip file
         p
           | Request an archive of your xanga
