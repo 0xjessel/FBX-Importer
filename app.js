@@ -85,6 +85,7 @@ app.post('/processing', function(req, res) {
   }
 
   util.processFile(file.path);
+
   res.redirect("/");
 });
 

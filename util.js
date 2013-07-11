@@ -9,12 +9,22 @@ exports.processFile = function(path) {
 
 //  zip.readAsTextAsync(zipEntries[24], exports.parseHTMLFile);
 
-  zipEntries.forEach(function(zipEntry) {
-    exports.parseHTMLFile(zip.readAsText(zipEntry));
-  })
+  var index = 0;
+
+  // recursion so that we post the notes chronologically
+  function parseZipEntry() {
+    if (index < zipEntries.length) {
+      parseHTMLFile(zip.readAsText(zipEntries[index]), function () {
+        index++;
+        parseZipEntry();
+      });
+    }
+  }
+
+  parseZipEntry();
 };
 
-exports.parseHTMLFile = function(data) {
+function parseHTMLFile(data, callback) {
   var $ = cheerio.load(data);
 
   // filter out comment titles
@@ -22,34 +32,55 @@ exports.parseHTMLFile = function(data) {
     return $(this).text().indexOf('Comments') === -1;
   }).toArray().reverse();
 
-  $(titles).each(function(i, elem) {
-    var title = $(this).text();
-    var titleSibling = $(this).next();
-    var commentTitle = titleSibling.next().next();
+  var index = 0;
 
-    var message = $(titleSibling).html();
-
-    // add comments, if any
-    if (commentTitle.length !== 0) {
-      var comments = commentTitle.next();
-
-      message += '<P>&nbsp;</P>';
-      message += '<span style="text-decoration: underline; font-weight: bold">' +
-        commentTitle.text() + '</span>';
-      message += comments.html();
+  // recursion to force synchronous looping over all the blog posts to maintain
+  // chronological order.
+  function postNoteFromBlog() {
+    if (index < titles.length) {
+      var data = getBlogData($, titles[index]);
+      createFBNote(data.title, data.message, function() {
+        index++;
+        postNoteFromBlog();
+      });
+    } else {
+      callback();
     }
-
-    exports.createFBNote(title, message);
-  });
+  }
+  postNoteFromBlog();
 };
 
-exports.createFBNote = function(title, message) {
+function getBlogData($, elem) {
+  var title = $(elem).text();
+  var titleSibling = $(elem).next();
+  var commentTitle = titleSibling.next().next();
+
+  var message = $(titleSibling).html();
+
+  // add comments, if any
+  if (commentTitle.length !== 0 &&
+      commentTitle.text().indexOf('Comments') !== -1) {
+    var comments = commentTitle.next();
+
+    message += '<P>&nbsp;</P>';
+    message += '<span style="text-decoration: underline; font-weight: bold">' +
+      commentTitle.text() + '</span>';
+    message += comments.html();
+  }
+
+  return { 'title': title, 'message': message };
+  //createFBNote(title, message);
+}
+
+function createFBNote(title, message, callback) {
   var note = {
       subject: title
     , message: message
   };
 
   graph.post('me/notes', note, function (err, res) {
+    console.log(title);
     console.log(res);
+    callback();
   });
 }
