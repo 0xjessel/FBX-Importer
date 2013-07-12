@@ -1,0 +1,27 @@
+doctype
+html(lang="en")
+  head
+    include includes/head
+    link(rel='stylesheet', href='/css/status.css')
+    script(src='/socket.io/socket.io.js')
+    script(src='/js/status.js')
+
+  body
+    div.container-narrow
+      include includes/header
+
+      h1 Import Status
+      h3 File successfully uploaded!  Stay on this page to track the progress.
+      div.well
+        h2#status_text Importing..
+        div.metadata.hidden_elem
+          div.progress.progress-striped.active
+            div.bar
+          span#current 0
+          span &nbsp/&nbsp
+          span#total 0
+          span &nbsp--&nbsp
+          span#title
+
+      h2 Console
+      div.well.console

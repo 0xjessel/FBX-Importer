@@ -1,4 +1,5 @@
-var cheerio   = require('cheerio')
+var app       = require('./app.js')
+  , cheerio   = require('cheerio')
   , graph     = require('fbgraph')
   , fs        = require('fs')
   , AdmZip    = require('adm-zip')
@@ -46,29 +47,41 @@ exports.getPrivacySetting = function(callback) {
   })
 };
 
-exports.processFile = function(path) {
+exports.processFile = function(sessionID, path) {
+  if (path === undefined) {
+    return;
+  }
+  
   var zip = new AdmZip(path);
   var zipEntries = zip.getEntries();
+
+  console.log('in process file, sessionID: ' + sessionID);
+  app.io.sockets.in(sessionID).emit(
+    'init processing',
+    { numFiles: zipEntries.length}
+  );
 
   var index = 0;
 
   // recursion so that we post the notes chronologically
   function parseZipEntry() {
     if (index < zipEntries.length) {
-      parseHTMLFile(zip.readAsText(zipEntries[index]), function () {
+      parseHTMLFile(sessionID, zip.readAsText(zipEntries[index]), function () {
         index++;
+        app.io.sockets.in(sessionID).emit('file complete');
         parseZipEntry();
       });
     } else {
       // delete the files
       fs.unlink(path);
+      delete app.SESSION_FILEPATH_MAP[sessionID];
+      app.io.sockets.in(sessionID).emit('process complete');
     }
   }
-
   parseZipEntry();
 };
 
-function parseHTMLFile(data, callback) {
+function parseHTMLFile(sessionID, data, callback) {
   var $ = cheerio.load(data);
 
   // filter out comment titles
@@ -83,7 +96,7 @@ function parseHTMLFile(data, callback) {
   function postNoteFromBlog() {
     if (index < titles.length) {
       var data = getBlogData($, titles[index]);
-      createFBNote(data.title, data.message, function() {
+      createFBNote(sessionID, data.title, data.message, function() {
         index++;
         postNoteFromBlog();
       });
@@ -115,13 +128,19 @@ function getBlogData($, elem) {
   return { 'title': title, 'message': message };
 }
 
-function createFBNote(title, message, callback) {
+function createFBNote(sessionID, title, message, callback) {
   var note = {
       subject: title
     , message: message
   };
 
   graph.post('me/notes', note, function (err, res) {
+    app.io.sockets.in(sessionID).emit('test test');
+
+    app.io.sockets.in(sessionID).emit(
+      'create note',
+      { title: title, response: res }
+    );
     console.log(title);
     console.log(res);
     callback();
