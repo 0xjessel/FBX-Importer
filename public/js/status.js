@@ -1,12 +1,14 @@
 var socket = io.connect('http://xanga.meltedxice.c9.io');
-var total = 0;
-var counter = 0;
+var totalFiles = 0;
+var success = 0;
+var failures = 0;
 
+// notify server we're ready to go
 socket.emit('start processing');
 
 // set the total counter
 socket.on('init processing', function(data) {
-  total = data.numFiles;
+  totalFiles = data.numFiles;
   $('#total').text(data.numFiles);
   $('.metadata').removeClass('hidden_elem').hide().fadeIn('slow');
 });
@@ -16,25 +18,47 @@ socket.on('create note', function(data) {
   var title = data.title
   var response = JSON.stringify(data.response);
 
-  counter++;
-
-  $('#title').text(title);
-
+  // update console
   var consoleDiv = $('.console');
-  consoleDiv.append(
-    '<p>' + title + '<p/><p>' + response + '</p>'
-  );
+  if (data.response.id === undefined) {
+    consoleDiv.append(
+      '<p>' + title + '<p/><p class="error_response">' + response + '</p>'
+    );
+    failures++;
+  } else {
+    consoleDiv.append(
+      '<p>' + title + '<p/><p>' + response + '</p>'
+    );
+    success++;
+  }
+
   consoleDiv[0].scrollTop = consoleDiv[0].scrollHeight;
+});
+
+socket.on('file start', function(data) {
+  var fileName = data.filename;
+
+  $('#title').text(fileName);
 });
 
 // increment progress bar and counter
 socket.on('file complete', function() {
+  // update progress bar
   var current = parseInt($('#current').text(), 10) + 1;
-  $('.bar').css('width', (current / total * 100) + "%");
+  $('.bar').css('width', (current / totalFiles * 100) + "%");
 
+  // update numerator
   $('#current').text(current);
 });
 
 socket.on('processing complete', function() {
-  $('#statusText').text('Completed!');
+  // update console
+  var consoleDiv = $('.console');
+  consoleDiv.append('<p>========================</p>');
+  consoleDiv.append('<p>archive.zip file deleted</p>');
+  consoleDiv.append('<p>' + success + ' notes successfully created</p>');
+  consoleDiv.append('<p>' + failures + ' notes failed to be created</p>');
+  consoleDiv[0].scrollTop = consoleDiv[0].scrollHeight;
+  
+  $('#status_text').text('Import Completed!');
 });

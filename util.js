@@ -51,11 +51,10 @@ exports.processFile = function(sessionID, path) {
   if (path === undefined) {
     return;
   }
-  
+
   var zip = new AdmZip(path);
   var zipEntries = zip.getEntries();
 
-  console.log('in process file, sessionID: ' + sessionID);
   app.io.sockets.in(sessionID).emit(
     'init processing',
     { numFiles: zipEntries.length}
@@ -66,6 +65,11 @@ exports.processFile = function(sessionID, path) {
   // recursion so that we post the notes chronologically
   function parseZipEntry() {
     if (index < zipEntries.length) {
+      app.io.sockets.in(sessionID).emit(
+        'file start',
+        { filename: zipEntries[index].entryName }
+      );
+
       parseHTMLFile(sessionID, zip.readAsText(zipEntries[index]), function () {
         index++;
         app.io.sockets.in(sessionID).emit('file complete');
@@ -75,7 +79,7 @@ exports.processFile = function(sessionID, path) {
       // delete the files
       fs.unlink(path);
       delete app.SESSION_FILEPATH_MAP[sessionID];
-      app.io.sockets.in(sessionID).emit('process complete');
+      app.io.sockets.in(sessionID).emit('processing complete');
     }
   }
   parseZipEntry();
@@ -135,8 +139,6 @@ function createFBNote(sessionID, title, message, callback) {
   };
 
   graph.post('me/notes', note, function (err, res) {
-    app.io.sockets.in(sessionID).emit('test test');
-
     app.io.sockets.in(sessionID).emit(
       'create note',
       { title: title, response: res }

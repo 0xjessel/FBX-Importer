@@ -29,11 +29,11 @@ app.configure(function(){
   app.set('views', __dirname + '/views');
   app.set('view engine', 'jade');
   app.use(express.bodyParser());
-  app.use(express.methodOverride());  
+  app.use(express.methodOverride());
   app.use(cookieParser);
-  app.use(express.session({ 
+  app.use(express.session({
     key: 'express.sid'
-  , store: sessionStore 
+  , store: sessionStore
   }));
   app.use(app.router);
   app.use(express.static(__dirname + '/public'));
@@ -131,7 +131,7 @@ io.set('authorization', function(data, accept){
   if (!data.headers.cookie) {
     return accept('Session cookie required.', false);
   }
- 
+
   var _signed_cookies = cookie.parse(decodeURIComponent(data.headers.cookie));
   data.cookie = connect.utils.parseSignedCookies(_signed_cookies, SECRET);
 
@@ -154,10 +154,8 @@ io.set('log level', 1);
 io.sockets.on('connection', function(socket) {
   var sessionID = socket.handshake.sessionID;
 
-  console.log('socket io sessionID: ' + sessionID);
-
   socket.join(sessionID);
-  
+
   socket.on('start processing', function() {
     util.processFile(sessionID, SESSION_FILEPATH_MAP[sessionID]);
   });
