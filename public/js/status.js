@@ -1,4 +1,4 @@
-var socket = io.connect('http://xanga.meltedxice.c9.io');
+var socket = io.connect();
 var totalFiles = 0;
 var success = 0;
 var failures = 0;
@@ -59,6 +59,6 @@ socket.on('processing complete', function() {
   consoleDiv.append('<p>' + success + ' note(s) successfully created</p>');
   consoleDiv.append('<p>' + failures + ' note(s) failed to be created</p>');
   consoleDiv[0].scrollTop = consoleDiv[0].scrollHeight;
-  
+
   $('#status_text').text('Import Completed!');
 });
