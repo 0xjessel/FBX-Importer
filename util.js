@@ -36,7 +36,7 @@ exports.validateRequest = function(sessionID, file) {
   var isNewUpload = app.SESSIONID_DATA_MAP[sessionID] === undefined;
   validator.check(
     isNewUpload,
-    'You have recently just begun the importing process.  Please view the ' +
+    'You just recently started the importing process.  Please view the ' +
     'status of your import <a href="http://xanga.meltedxice.c9.io/status"' +
     '>here</a>.'
   ).equals(true);
@@ -56,9 +56,10 @@ exports.getPrivacySetting = function(callback) {
 
   graph.fql(query, function(err, res) {
     var value = res.data[0].value;
-
-    callback(privacyMap[value]);
-  })
+    graph.get('me?fields=name', function (err2, res2) {
+      callback(res2.name, privacyMap[value]);
+    });
+  });
 };
 
 exports.processFile = function(sessionID) {

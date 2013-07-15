@@ -102,10 +102,15 @@ app.get('/upload', function(req, res) {
     });
   });
 
-  util.getPrivacySetting(function(privacyString) {
+  util.getPrivacySetting(function(name, privacyString) {
     res.render(
       'upload',
-      { title: 'Upload ZIP File', privacyString: privacyString, errors: {}}
+      {
+        title: 'Upload ZIP File',
+        name: name,
+        privacyString: privacyString,
+        errors: {}
+      }
     );
   });
 });
@@ -130,10 +135,15 @@ app.post('/processing', function(req, res) {
     };
     res.redirect('/status');
   } else {
-    util.getPrivacySetting(function(privacyString) {
+    util.getPrivacySetting(function(name, privacyString) {
       res.render(
         'upload',
-        { title: 'Upload ZIP File', privacyString: privacyString, errors: errors }
+        {
+          title: 'Upload ZIP File',
+          name: name,
+          privacyString: privacyString,
+          errors: errors
+        }
       );
     });
 
