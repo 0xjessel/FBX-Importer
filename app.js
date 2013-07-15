@@ -12,6 +12,7 @@ var express        = require('express')
   , conf           = require('./conf.js')
   , util           = require('./util.js')
   , fs             = require('fs')
+  , mixpanel       = exports.mixpanel = require('mixpanel').init(conf.mixpanel)
   , io             = exports.io = require('socket.io').listen(server)
 ;
 
@@ -25,7 +26,7 @@ var SESSION_FILEPATH_MAP = exports.SESSION_FILEPATH_MAP = {};
 
 // Configuration
 
-app.configure(function(){
+app.configure(function() {
   app.set('views', __dirname + '/views');
   app.set('view engine', 'jade');
   app.use(express.bodyParser());
@@ -39,18 +40,19 @@ app.configure(function(){
   app.use(express.static(__dirname + '/public'));
 });
 
-app.configure('development', function(){
+app.configure('development', function() {
   app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
 });
 
-app.configure('production', function(){
+app.configure('production', function() {
   app.use(express.errorHandler());
 });
 
 // Routes
 
-app.get('/', function(req, res){
-  res.render("index", { title: "FBX" });
+app.get('/', function(req, res) {
+  mixpanel.track('Home Page Loaded');
+  res.render('index', { title: 'FBX' });
 });
 
 app.get('/auth/facebook', function(req, res) {
@@ -58,9 +60,9 @@ app.get('/auth/facebook', function(req, res) {
   // so we'll redirect to the oauth dialog
   if (!req.query.code) {
     var authUrl = graph.getOauthUrl({
-        "client_id":     conf.fb.client_id
-      , "redirect_uri":  conf.fb.redirect_uri
-      , "scope":         conf.fb.scope
+        'client_id':     conf.fb.client_id
+      , 'redirect_uri':  conf.fb.redirect_uri
+      , 'scope':         conf.fb.scope
     });
 
     if (!req.query.error) { //checks whether a user denied the app facebook login/permissions
@@ -74,29 +76,37 @@ app.get('/auth/facebook', function(req, res) {
   // code is set
   // we'll send that and get the access token
   graph.authorize({
-      "client_id":      conf.fb.client_id
-    , "redirect_uri":   conf.fb.redirect_uri
-    , "client_secret":  conf.fb.client_secret
-    , "code":           req.query.code
+      'client_id':      conf.fb.client_id
+    , 'redirect_uri':   conf.fb.redirect_uri
+    , 'client_secret':  conf.fb.client_secret
+    , 'code':           req.query.code
   }, function (err, facebookRes) {
     res.redirect('/upload');
   });
-
-
 });
 
 // user gets sent here after being authorized
 app.get('/upload', function(req, res) {
+  mixpanel.track('Upload Page Loaded');
+  graph.get('me?fields=id', function (err, res) {
+    mixpanel.people.set(res.id, {
+      $created: (new Date().toISOString()),
+      notes_created: 0,
+      notes_failed: 0,
+    });
+  });
+  
   util.getPrivacySetting(function(privacyString) {
     res.render(
-      "upload",
-      { title: "Upload ZIP File", privacyString: privacyString, errors: {}}
+      'upload',
+      { title: 'Upload ZIP File', privacyString: privacyString, errors: {}}
     );
   });
 });
 
 // user gets sent here after uploading a zip file
 app.post('/processing', function(req, res) {
+  mixpanel.track('Zip File Uploaded');
   var file = req.files.archive;
 
   // not sure if this is necessary..but better safe than sorry
@@ -106,12 +116,12 @@ app.post('/processing', function(req, res) {
 
   if (errors.length === 0) {
     SESSION_FILEPATH_MAP[req.sessionID] = file.path;
-    res.redirect("/status");
+    res.redirect('/status');
   } else {
     util.getPrivacySetting(function(privacyString) {
       res.render(
-        "upload",
-        { title: "Upload ZIP File", privacyString: privacyString, errors: errors }
+        'upload',
+        { title: 'Upload ZIP File', privacyString: privacyString, errors: errors }
       );
     });
 
@@ -121,6 +131,8 @@ app.post('/processing', function(req, res) {
 });
 
 app.get('/status', function(req, res) {
+  mixpanel.track('Status Page Loaded');
+
   res.render(
     'status',
     { title: 'Import Status' }
@@ -163,5 +175,5 @@ io.sockets.on('connection', function(socket) {
 
 var port = process.env.PORT || 3000;
 server.listen(port, function() {
-  console.log("Express server listening on port %d", port);
+  console.log('Express server listening on port %d', port);
 });

@@ -139,12 +139,17 @@ function createFBNote(sessionID, title, message, callback) {
   };
 
   graph.post('me/notes', note, function (err, res) {
+    graph.get('me?fields=id', function (err2, res2) {
+      if (res.id === undefined) {
+        app.mixpanel.people.increment(res2.id, 'notes_failed');
+      } else {
+        app.mixpanel.people.increment(res2.id, 'notes_created');
+      }
+    });
     app.io.sockets.in(sessionID).emit(
       'create note',
       { title: title, response: res }
     );
-    console.log(title);
-    console.log(res);
     callback();
   });
 }
