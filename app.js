@@ -21,8 +21,8 @@ var SECRET = 'xanga';
 var cookieParser   = express.cookieParser(SECRET);
 var sessionStore   = new express.session.MemoryStore();
 
-// map of session id => filepath
-var SESSION_FILEPATH_MAP = exports.SESSION_FILEPATH_MAP = {};
+// map of session id to a variety of data related to a session
+var SESSIONID_DATA_MAP = exports.SESSIONID_DATA_MAP = {};
 
 // Configuration
 
@@ -87,15 +87,21 @@ app.get('/auth/facebook', function(req, res) {
 
 // user gets sent here after being authorized
 app.get('/upload', function(req, res) {
+  if (!graph.getAccessToken()) {
+    res.redirect('/');
+    return;
+  }
+
   mixpanel.track('Upload Page Loaded');
   graph.get('me?fields=id', function (err, res) {
     mixpanel.people.set(res.id, {
       $created: (new Date().toISOString()),
+      name: res.id,
       notes_created: 0,
       notes_failed: 0,
     });
   });
-  
+
   util.getPrivacySetting(function(privacyString) {
     res.render(
       'upload',
@@ -112,10 +118,16 @@ app.post('/processing', function(req, res) {
   // not sure if this is necessary..but better safe than sorry
   fs.chmod(file.path, '600');
 
-  var errors = util.validateFile(file);
+  var errors = util.validateRequest(req.sessionID, file);
 
   if (errors.length === 0) {
-    SESSION_FILEPATH_MAP[req.sessionID] = file.path;
+    SESSIONID_DATA_MAP[req.sessionID] = {
+      filepath: file.path,
+      notes_created: 0,
+      notes_failed: 0,
+      num_files: 0,
+      started: false,
+    };
     res.redirect('/status');
   } else {
     util.getPrivacySetting(function(privacyString) {
@@ -131,6 +143,12 @@ app.post('/processing', function(req, res) {
 });
 
 app.get('/status', function(req, res) {
+  var sessionData = SESSIONID_DATA_MAP[req.sessionID];
+  if (!sessionData) {
+    res.redirect('/');
+    return;
+  }
+
   mixpanel.track('Status Page Loaded');
 
   res.render(
@@ -169,7 +187,7 @@ io.sockets.on('connection', function(socket) {
   socket.join(sessionID);
 
   socket.on('start processing', function() {
-    util.processFile(sessionID, SESSION_FILEPATH_MAP[sessionID]);
+    util.processFile(sessionID);
   });
 });
 

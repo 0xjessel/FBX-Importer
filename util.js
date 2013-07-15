@@ -5,7 +5,7 @@ var app       = require('./app.js')
   , AdmZip    = require('adm-zip')
   , Validator = require('validator').Validator;
 
-exports.validateFile = function(file) {
+exports.validateRequest = function(sessionID, file) {
   Validator.prototype.error = function (msg) {
       this._errors.push(msg);
       return this;
@@ -33,6 +33,14 @@ exports.validateFile = function(file) {
     'File must be in zip format'
   ).equals(true);
 
+  var isNewUpload = app.SESSIONID_DATA_MAP[sessionID] === undefined;
+  validator.check(
+    isNewUpload,
+    'You have recently just begun the importing process.  Please view the ' +
+    'status of your import <a href="http://xanga.meltedxice.c9.io/status"' +
+    '>here</a>.'
+  ).equals(true);
+
   return validator.getErrors();
 }
 
@@ -53,17 +61,30 @@ exports.getPrivacySetting = function(callback) {
   })
 };
 
-exports.processFile = function(sessionID, path) {
-  if (path === undefined) {
+exports.processFile = function(sessionID) {
+  var sessionData = app.SESSIONID_DATA_MAP[sessionID];
+  if (!sessionData) {
+    return;
+  } else if (sessionData.started === true) {
+    app.io.sockets.in(sessionID).emit(
+      'resume processing',
+      {
+        numFiles: sessionData.numFiles,
+        currentIndex: sessionData.currentIndex
+      }
+    );
     return;
   }
 
-  var zip = new AdmZip(path);
+  var zip = new AdmZip(sessionData.filepath);
   var zipEntries = zip.getEntries();
+
+  sessionData.started = true;
+  sessionData.numFiles = zipEntries.length;
 
   app.io.sockets.in(sessionID).emit(
     'init processing',
-    { numFiles: zipEntries.length}
+    { numFiles: sessionData.numFiles }
   );
 
   var index = 0;
@@ -71,21 +92,32 @@ exports.processFile = function(sessionID, path) {
   // recursion so that we post the notes chronologically
   function parseZipEntry() {
     if (index < zipEntries.length) {
+      sessionData.currentIndex = index;
       app.io.sockets.in(sessionID).emit(
         'file start',
-        { filename: zipEntries[index].entryName }
+        {
+          filename: zipEntries[index].entryName,
+          currentIndex: sessionData.currentIndex
+        }
       );
 
-      parseHTMLFile(sessionID, zip.readAsText(zipEntries[index]), function () {
+      parseHTMLFile(sessionID, zip.readAsText(zipEntries[index]), function() {
         index++;
-        app.io.sockets.in(sessionID).emit('file complete');
         parseZipEntry();
       });
     } else {
       // delete the files
-      fs.unlink(path);
-      delete app.SESSION_FILEPATH_MAP[sessionID];
-      app.io.sockets.in(sessionID).emit('processing complete');
+      fs.unlink(sessionData.filepath);
+
+      app.io.sockets.in(sessionID).emit(
+        'processing complete',
+        {
+          notesCreated: sessionData.notes_created,
+          notesFailed: sessionData.notes_failed
+        }
+      );
+
+      delete app.SESSIONID_DATA_MAP[sessionID];
     }
   }
   parseZipEntry();
@@ -143,19 +175,30 @@ function createFBNote(sessionID, title, message, callback) {
       subject: title
     , message: message
   };
+  var sessionData = app.SESSIONID_DATA_MAP[sessionID];
 
   graph.post('me/notes', note, function (err, res) {
+    var success = res.id !== undefined;
+
     graph.get('me?fields=id', function (err2, res2) {
-      if (res.id === undefined) {
-        app.mixpanel.people.increment(res2.id, 'notes_failed');
-      } else {
+      if (success) {
         app.mixpanel.people.increment(res2.id, 'notes_created');
+
+      } else {
+        app.mixpanel.people.increment(res2.id, 'notes_failed');
       }
     });
     app.io.sockets.in(sessionID).emit(
       'create note',
-      { title: title, response: res }
+      { title: title, response: res, success: success }
     );
+
+    if (success) {
+     sessionData.notes_created++;
+    } else {
+      sessionData.notes_failed++;
+    }
+
     callback();
   });
 }

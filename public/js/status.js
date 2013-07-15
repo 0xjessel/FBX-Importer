@@ -1,7 +1,6 @@
 var socket = io.connect();
+var currentIndex = 0;
 var totalFiles = 0;
-var success = 0;
-var failures = 0;
 
 // notify server we're ready to go
 socket.emit('start processing');
@@ -9,8 +8,20 @@ socket.emit('start processing');
 // set the total counter
 socket.on('init processing', function(data) {
   totalFiles = data.numFiles;
-  $('#total').text(data.numFiles);
-  $('.metadata').removeClass('hidden_elem').hide().fadeIn(800);
+  currentIndex = data.currentIndex;
+
+  setTotal(totalFiles);
+  updateProgress();
+  fadeInMetadata();
+});
+
+socket.on('resume processing', function(data) {
+  totalFiles = data.numFiles;
+  currentIndex = data.currentIndex;
+console.log('index is at '+currentIndex +' with total:'+totalFiles);
+  setTotal(totalFiles);
+  updateProgress();
+  fadeInMetadata();
 });
 
 // live update of the title of the note that was created
@@ -24,34 +35,32 @@ socket.on('create note', function(data) {
     consoleDiv.append(
       '<p>' + title + '<p/><p class="error_response">' + response + '</p>'
     );
-    failures++;
   } else {
     consoleDiv.append(
       '<p>' + title + '<p/><p>' + response + '</p>'
     );
-    success++;
   }
 
   consoleDiv[0].scrollTop = consoleDiv[0].scrollHeight;
 });
 
+// increment progress bar and metadata
 socket.on('file start', function(data) {
   var fileName = data.filename;
+  currentIndex = data.currentIndex;
 
   $('#title').text(fileName);
+
+  updateProgress();
 });
 
-// increment progress bar and counter
-socket.on('file complete', function() {
-  // update progress bar
-  var current = parseInt($('#current').text(), 10) + 1;
-  $('.bar').css('width', (current / totalFiles * 100) + "%");
+socket.on('processing complete', function(data) {
+  currentIndex = totalFiles;
+  var success = data.notesCreated;
+  var failures = data.notesFailed;
 
-  // update numerator
-  $('#current').text(current);
-});
+  updateProgress();
 
-socket.on('processing complete', function() {
   // update console
   var consoleDiv = $('.console');
   consoleDiv.append('<p>========================</p>');
@@ -62,6 +71,20 @@ socket.on('processing complete', function() {
 
   $('#status_text').text('Import Completed!');
 });
+
+function updateProgress() {
+  console.log('updating');
+  $('.bar').css('width', (currentIndex / totalFiles * 100) + '%');
+  $('#current').text(currentIndex);
+}
+
+function setTotal(numFiles) {
+  $('#total').text(numFiles);
+}
+
+function fadeInMetadata() {
+  $('.metadata').removeClass('hidden_elem').hide().fadeIn(800);
+}
 
 $(document).ready(function() {
     $("#fb_share").click(function() {
