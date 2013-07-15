@@ -18,7 +18,7 @@ socket.on('init processing', function(data) {
 socket.on('resume processing', function(data) {
   totalFiles = data.numFiles;
   currentIndex = data.currentIndex;
-console.log('index is at '+currentIndex +' with total:'+totalFiles);
+
   setTotal(totalFiles);
   updateProgress();
   fadeInMetadata();
@@ -73,7 +73,6 @@ socket.on('processing complete', function(data) {
 });
 
 function updateProgress() {
-  console.log('updating');
   $('.bar').css('width', (currentIndex / totalFiles * 100) + '%');
   $('#current').text(currentIndex);
 }
