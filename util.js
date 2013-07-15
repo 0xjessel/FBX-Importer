@@ -22,10 +22,16 @@ exports.validateFile = function(file) {
     'File must be named "archive.zip" (without quotes)'
   ).equals('archive.zip');
 
+  var isValidFiletype = false;
+  if (file.type === 'application/x-zip-compressed' ||
+      file.type === 'application/zip') {
+    isValidFiletype = true;
+  }
+
   validator.check(
-    file.type,
+    isValidFiletype,
     'File must be in zip format'
-  ).equals('application/x-zip-compressed');
+  ).equals(true);
 
   return validator.getErrors();
 }

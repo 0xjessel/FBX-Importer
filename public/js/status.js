@@ -10,7 +10,7 @@ socket.emit('start processing');
 socket.on('init processing', function(data) {
   totalFiles = data.numFiles;
   $('#total').text(data.numFiles);
-  $('.metadata').removeClass('hidden_elem').hide().fadeIn('slow');
+  $('.metadata').removeClass('hidden_elem').hide().fadeIn(800);
 });
 
 // live update of the title of the note that was created
@@ -71,7 +71,16 @@ $(document).ready(function() {
         picture: '',
         name: 'FBX Importer',
         caption: 'Xanga -> FB',
-        description: 'Import your Xanga blog posts into Facebook as notes before Xanga shuts down!'
-      }, function(response){});
+        description: 'Import your Xanga blog posts into Facebook before Xanga shuts down!'
+      }, function(response) {
+        if (!response) {
+          return;
+        }
+
+        if (typeof(response.post_id) === 'string') {
+          $('.success').removeClass('hidden_elem').hide().fadeIn(800);
+          $('#fb_share').off('click');
+        }
+      });
     });
 });

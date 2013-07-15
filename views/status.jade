@@ -16,8 +16,11 @@ html(lang="en")
         Meanwhile, why not share this app with your friends so they can import
         their Xanga blog posts too?
       div.fb_share_wrap
-       a#fb_share(href="#")
+        a#fb_share(href="#")
           img.fb_share_img(src="/img/fb.png")
+        span.success.hidden_elem
+          img.success(src="/img/checkmark.png")
+          | Successfully posted!
       div.well
         h2#status_text Importing..
         div.metadata.hidden_elem
