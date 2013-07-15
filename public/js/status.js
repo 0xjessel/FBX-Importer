@@ -62,3 +62,16 @@ socket.on('processing complete', function() {
 
   $('#status_text').text('Import Completed!');
 });
+
+$(document).ready(function() {
+    $("#fb_share").click(function() {
+      FB.ui({
+        method: 'feed',
+        link: 'http://xanga.meltedxice.c9.io/',
+        picture: '',
+        name: 'FBX Importer',
+        caption: 'Xanga -> FB',
+        description: 'Import your Xanga blog posts into Facebook as notes before Xanga shuts down!'
+      }, function(response){});
+    });
+});

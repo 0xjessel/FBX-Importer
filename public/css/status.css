@@ -10,3 +10,15 @@
 .error_response {
   color: red;
 }
+
+.fb_share_wrap {
+  height: 75px;
+}
+
+.fb_share_img {
+  transition: .2s;
+}
+
+.fb_share_img:hover {
+  margin-top: 4px;
+}
