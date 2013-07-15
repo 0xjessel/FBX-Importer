@@ -52,7 +52,7 @@ app.configure('production', function() {
 
 app.get('/', function(req, res) {
   mixpanel.track('Home Page Loaded');
-  res.render('index', { title: 'FBX' });
+  res.render('index', { title: 'FBX Importer' });
 });
 
 app.get('/auth/facebook', function(req, res) {
