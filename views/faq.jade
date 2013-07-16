@@ -1,0 +1,47 @@
+doctype
+html(lang="en")
+  head
+    include includes/head
+    link(rel='stylesheet', href='/css/faq.css')
+
+  body
+    div.container-narrow
+      include includes/header
+
+      h1 FAQ
+
+      div.span6
+        h4 Why did you build this?
+        p.
+          I built this because although I am extremely embarassed at my previous
+          self, there was no denying that it was who I was back then.  Being able
+          to keep my old articles stored somewhere where I can see them again, is
+          something I want to be able to do.  Reading my old posts is like
+          traveling back into time and experiencing what life was like back then
+          as a teenager.  Countless times when I was working on FBX Importer, I
+          found myself taking a break and reading my old posts.  Many facepalms,
+          laughs, and old memories were had.  I hope for others to be able to do
+          the same, which is why I built this.
+      div.span6
+        h4 Why does my note say, for example, "2 Comments" when there is only one comment?
+        p.
+          I wish I knew the answer as well. If you unzip your archive.zip file
+          and view the raw HTML file, you'll find the same problem.  Some
+          entries say X Comments when there is actually only Y comments.  It
+          seems as if either their count was wrong, or maybe someone deleted
+          their account and as a consequence, their comments are gone as well.
+      div.span6
+        h4 Some of the embedded images in my FB Notes are still hosted on Xanga.  What is going to happen to them?
+        p.
+          I couldn't come up with an ideal solution for this in time.
+          If Xanga was to shut down, unfortunately, that means your images will
+          disappear as well. The only solution that seems reasonable is to upload
+          your photos into a FB photo album, so you can at least view them.  However,
+          figuring out the permalink and fixing the links in each post was too much
+          work and I couldn't get this done in time.  Feel free to send a pull
+          request, however!
+
+      div.clearfix
+      img.calvinhobbes(src="/img/calvinhobbes.jpg")
+
+      include includes/footer

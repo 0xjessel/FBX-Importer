@@ -167,6 +167,10 @@ app.get('/status', function(req, res) {
   );
 });
 
+app.get('/faq', function(req, res) {
+  res.render('faq', { title: 'FAQ', isFAQ: true });
+});
+
 io.set('authorization', function(data, accept){
   if (!data.headers.cookie) {
     return accept('Session cookie required.', false);

@@ -1,9 +1,19 @@
 div.masthead
   ul.nav.nav-pills.pull-right
-    li.active
-      a(href="/") Home
+    if !isFAQ
+      li.active
+        a(href="/") Home
+    else
+      li
+        a(href="/") Home
     li
       a(href="https://www.facebook.com/jesselchen", target="_blank") About
+    if !isFAQ
+      li
+        a(href="/faq") FAQ
+    else
+      li.active
+        a(href="/faq") FAQ
   h3.muted FBX Importer
 
   hr
