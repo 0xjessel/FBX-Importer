@@ -1,0 +1,28 @@
+{
+  "name": "fbx-importer",
+  "version": "0.9.0",
+  "description": "Import your Xanga blog posts to Facebook before Xanga shuts down",
+  "main": "app.js",
+  "dependencies": {
+    "socket.io": "~0.9.16",
+    "jade": "~0.32.0",
+    "express": "~3.3.3",
+    "cookie": "~0.1.0",
+    "validator": "~1.2.2",
+    "connect": "~2.8.4",
+    "cheerio": "~0.12.0",
+    "fbgraph": "~0.2.6",
+    "adm-zip": "~0.4.3",
+    "mixpanel": "~0.0.16"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/meltedxice/xanga.git"
+  },
+  "author": "Jesse Chen",
+  "license": "BSD"
+}
