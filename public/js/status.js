@@ -89,8 +89,8 @@ $(document).ready(function() {
     $("#fb_share").click(function() {
       FB.ui({
         method: 'feed',
-        link: 'http://xanga.meltedxice.c9.io/',
-        picture: 'http://xanga.meltedxice.c9.io/img/cool.gif',
+        link: 'http://fbximporter.jessechen.net/',
+        picture: 'http://fbximporter.jessechen.net/img/cool.gif',
         name: 'FBX Importer',
         caption: 'Xanga -> FB',
         description: 'Import your Xanga blog posts into Facebook before Xanga shuts down!'

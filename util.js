@@ -39,7 +39,7 @@ exports.validateRequest = function(sessionID, file) {
   validator.check(
     isNewUpload,
     'You just recently started the importing process.  Please view the ' +
-    'status of your import <a href="http://xanga.meltedxice.c9.io/status"' +
+    'status of your import <a href="http://fbximporter.jessechen.net/status"' +
     '>here</a>.'
   ).equals(true);
 
