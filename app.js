@@ -9,17 +9,21 @@ var express        = require('express')
   , graph          = require('fbgraph')
   , app            = express()
   , server         = http.createServer(app)
-  , conf           = require('./conf.js')
   , util           = require('./util.js')
   , fs             = require('fs')
-  , mixpanel       = exports.mixpanel = require('mixpanel').init(process.env.MIXPANEL ? process.env.MIXPANEL : conf.mixpanel)
   , io             = exports.io = require('socket.io').listen(server)
 ;
 
-// session stuff
+try {
+  var conf = require('./conf.js');
+} catch (e) {
+}
+
 var SECRET = 'xanga';
-var cookieParser   = express.cookieParser(SECRET);
-var sessionStore   = new express.session.MemoryStore();
+var cookieParser = express.cookieParser(SECRET);
+var sessionStore = new express.session.MemoryStore();
+var mixpanel = exports.mixpanel = require('mixpanel').init(process.env.MIXPANEL ? process.env.MIXPANEL : conf.mixpanel)
+
 
 // map of session id to a variety of data related to a session
 var SESSIONID_DATA_MAP = exports.SESSIONID_DATA_MAP = {};
