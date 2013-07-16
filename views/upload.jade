@@ -2,6 +2,8 @@ doctype
 html(lang="en")
   head
     include includes/head
+    script(src="/js/bootstrap-modal.js")
+    script(src="/js/upload.js")
 
   body
     - function isEmptyObject(obj) {
@@ -47,7 +49,28 @@ html(lang="en")
         form(method="post", action="/processing", enctype="multipart/form-data")
           input(type="file", accept="application/zip", name="archive")
 
-          div.form-actions
-            button(type="submit", class="btn btn-primary") Upload
+        div.form-actions
+          button.btn.btn-primary(
+            type="submit",
+            data-toggle="modal",
+            data-target="#confirm_dialog"
+          ) Upload
+
+      div#confirm_dialog.modal.hide.fade(role="dialog", aria-hidden="true")
+        div.modal-header
+          button.close(type="button", data-dismiss="modal", aria-hidden="true") &times;
+          h3 Are you sure?
+        div.modal-body
+          p
+            | Your FB Notes will be published under
+            b  #{name}
+            |  with the privacy setting
+            b  #{privacyString}
+            | .
+          p
+            | Once you click submit, the import will begin and you cannot cancel.
+        div.modal-footer
+          button.btn(data-dismiss="modal", aria-hidden="true") Cancel
+          button.submitBtn.btn.btn-primary Submit
 
       include includes/footer

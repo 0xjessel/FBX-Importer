@@ -4,6 +4,11 @@ body {
   background-image: url('/img/ricepaper.png');
 }
 
+.hidden_elem {
+  visibility: hidden !important;
+}
+
+
 /* Custom container */
 .container-narrow {
   margin: 0 auto;

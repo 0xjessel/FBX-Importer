@@ -1,7 +1,3 @@
-.hidden_elem {
-  visibility: hidden !important;
-}
-
 .console {
   height: 300px;
   overflow-y: scroll;
