@@ -24,7 +24,7 @@ html(lang="en")
             - each error in errors
               li!= error
 
-        h1 Upload zip file
+        h1 Upload archive.zip
         p
           a(
             href="http://www.xanga.com/private/archives.aspx",
@@ -45,6 +45,12 @@ html(lang="en")
             href="https://www.facebook.com/settings?tab=applications"
           ) Facebook App Settings
           |  to change the publishing privacy of this app.
+        p
+          | Protip: Once you upload the zip file, there is no turning back.  We
+          | will begin to post, possibly hundreds of, notes to your account as
+          | we parse the zip file.  If you are really paranoid, you can use a
+          | test account to do a "dry run" and make sure you like what you see
+          | before doing it on your real account.
 
         form(method="post", action="/processing", enctype="multipart/form-data")
           input(type="file", accept="application/zip", name="archive")
