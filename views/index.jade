@@ -10,30 +10,39 @@ html(lang="en")
 
       div.jumbotron
         h1 Xanga &#9658; Facebook
-        p.lead Import your Xanga blog posts into Facebook before Xanga shuts down
-        a(href='/auth/facebook')#login
-
+        p.lead Import your Xanga blog posts to Facebook before Xanga shuts down
+        a#login(href='/auth/facebook')
       hr
 
       div.row-fluid.marketing
         div.span6
-          h4 Subheading
-          p LALALLALALALAL
+          h4 Xanga to Facebook
+          p
+          | Xanga is shutting down end of July unless it reaches its&nbsp;
+          a(
+            href="https://xanga.crowdhoster.com/relaunch-xanga",
+            target="_blank"
+          ) fundraising goal of 60,000 dollars
+          | .  Preserve your old xanga posts by importing them to Facebook
+          | before your data is gone forever.
 
-          h4 Subheading 2
-          p I PLAY BASKETBALL
-
-          h4 SUBHEADING 3
-          p DONT YOU LIE
+          h4 Facebook Login
+          p
+          | FBX Importer obviously requires Facebook Login.  However, The only
+          | permission that we ask is the ability to publish Facebook Notes.
+          | The default privacy for those notes is&nbsp;
+          b Only Me
+          |  unless you choose otherwise.
 
         div.span6
-          h4 Subheading 4
-          p DONT YOU WORRY BABY
-
-          h4 Subheading 5
-          p CHILD IT IS WITH ME
-
-          h4 Subheading 6
-          p TROLOLOL
+          h4 Open Source
+          p
+          | FBX Importer is open source, which means that you and others can see
+          | the source code that makes this app work.  Feel free to&nbsp;
+          a(
+            href="https://github.com/meltedxice/FBX-Importer",
+            target="_blank"
+          ) check it out on GitHub
+          | .
 
       include includes/footer
