@@ -5,6 +5,8 @@ var app       = require('./app.js')
   , AdmZip    = require('adm-zip')
   , Validator = require('validator').Validator;
 
+var orderedMonths = [ 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' ];
+
 exports.validateRequest = function(sessionID, file) {
   Validator.prototype.error = function (msg) {
       this._errors.push(msg);
@@ -80,8 +82,11 @@ exports.processFile = function(sessionID) {
   var zip = new AdmZip(sessionData.filepath);
   var zipEntries = zip.getEntries();
 
+  // rearrange entries to be chronological
+  var sortedZipEntries = sortFiles(zipEntries);
+
   sessionData.started = true;
-  sessionData.numFiles = zipEntries.length;
+  sessionData.numFiles = sortedZipEntries.length;
 
   app.io.sockets.in(sessionID).emit(
     'init processing',
@@ -92,17 +97,17 @@ exports.processFile = function(sessionID) {
 
   // recursion so that we post the notes chronologically
   function parseZipEntry() {
-    if (index < zipEntries.length) {
+    if (index < sortedZipEntries.length) {
       sessionData.currentIndex = index;
       app.io.sockets.in(sessionID).emit(
         'file start',
         {
-          filename: zipEntries[index].entryName,
+          filename: sortedZipEntries[index].entryName,
           currentIndex: sessionData.currentIndex
         }
       );
 
-      parseHTMLFile(sessionID, zip.readAsText(zipEntries[index]), function() {
+      parseHTMLFile(sessionID, zip.readAsText(sortedZipEntries[index]), function() {
         index++;
         parseZipEntry();
       });
@@ -122,6 +127,37 @@ exports.processFile = function(sessionID) {
     }
   }
   parseZipEntry();
+};
+
+/**
+ * this is the kind of algorithm that gets thought of at 4AM.  basically, get
+ * the oldest year and as we iterate through all the entries, get the difference
+ * between the entry's year and the oldest year, multiply by 12 (for months),
+ * and add the month value (0-11).  That's the index where that entry belongs.
+ * What we did was create an array that has a slot for every month and it is
+ * only populated when we actually have a file that fits the slot.
+ *
+ * Before we return the result, we filter and collapse the array so that there
+ * are no holes where the element is undefined in the array.
+ */
+function sortFiles(entries) {
+  var sortedEntries = [];
+  var oldestYear = parseInt(entries[0].entryName.slice(-12, -8), 10);
+  for (var i = 0; i < entries.length; i++) {
+    var entry = entries[i];
+    var data = entry.entryName.slice(-12).split('_'); // e.g. ["2004", "Apr.htm"]
+    var index = (+data[0] - oldestYear) * 12 + orderedMonths.indexOf(data[1].split('.')[0]);
+    sortedEntries[index] = entry;
+  }
+
+  var filteredSortedEntries = [];
+  for (var j = 0; j < sortedEntries.length; j++) {
+    if (sortedEntries[j] !== undefined) {
+      filteredSortedEntries.push(sortedEntries[j]);
+    }
+  }
+
+  return filteredSortedEntries;
 };
 
 function parseHTMLFile(sessionID, data, callback) {
