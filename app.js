@@ -12,7 +12,7 @@ var express        = require('express')
   , conf           = require('./conf.js')
   , util           = require('./util.js')
   , fs             = require('fs')
-  , mixpanel       = exports.mixpanel = require('mixpanel').init(conf.mixpanel)
+  , mixpanel       = exports.mixpanel = require('mixpanel').init(process.env.MIXPANEL ? process.env.MIXPANEL : conf.mixpanel)
   , io             = exports.io = require('socket.io').listen(server)
 ;
 
@@ -60,9 +60,9 @@ app.get('/auth/facebook', function(req, res) {
   // so we'll redirect to the oauth dialog
   if (!req.query.code) {
     var authUrl = graph.getOauthUrl({
-        'client_id':     conf.fb.client_id
-      , 'redirect_uri':  conf.fb.redirect_uri
-      , 'scope':         conf.fb.scope
+        'client_id':     process.env.CLIENT_ID ? process.env.CLIENT_ID : conf.client_id
+      , 'redirect_uri':  process.env.REDIRECT_URI ? process.env.REDIRECT_URI : conf.redirect_uri
+      , 'scope':         process.env.SCOPE ? process.env.SCOPE : conf.scope
     });
 
     if (!req.query.error) { //checks whether a user denied the app facebook login/permissions
@@ -76,9 +76,9 @@ app.get('/auth/facebook', function(req, res) {
   // code is set
   // we'll send that and get the access token
   graph.authorize({
-      'client_id':      conf.fb.client_id
-    , 'redirect_uri':   conf.fb.redirect_uri
-    , 'client_secret':  conf.fb.client_secret
+      'client_id':     process.env.CLIENT_ID ? process.env.CLIENT_ID : conf.client_id
+    , 'redirect_uri':  process.env.REDIRECT_URI ? process.env.REDIRECT_URI : conf.redirect_uri
+    , 'scope':         process.env.SCOPE ? process.env.SCOPE : conf.scope
     , 'code':           req.query.code
   }, function (err, facebookRes) {
     res.redirect('/upload');
