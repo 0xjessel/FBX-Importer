@@ -26,7 +26,13 @@ exports.validateRequest = function(sessionID, file) {
 
   var isValidFiletype = false;
   if (file.type === 'application/x-zip-compressed' ||
-      file.type === 'application/zip') {
+      file.type === 'application/zip' ||
+      file.type === 'application/x-zip' ||
+      file.type === 'application/octet-stream' ||
+      file.type === 'application/x-compress' ||
+      file.type === 'application/x-compressed' ||
+      file.type === 'multipart/x-zip'
+    ) {
     isValidFiletype = true;
   }
 
