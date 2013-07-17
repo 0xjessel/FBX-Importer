@@ -28,7 +28,7 @@ if (cluster.isMaster) {
 
   var SECRET = 'xanga';
   var cookieParser = express.cookieParser(SECRET);
-  var sessionStore = new express.session.MemoryStore();
+  //var sessionStore = new express.session.MemoryStore();
   var mixpanel = exports.mixpanel = require('mixpanel').init(process.env.MIXPANEL);
 
 
@@ -44,10 +44,7 @@ if (cluster.isMaster) {
     app.use(express.bodyParser());
     app.use(express.methodOverride());
     app.use(cookieParser);
-    app.use(express.session({
-      key: 'express.sid'
-    , store: sessionStore
-    }));
+    app.use(util.cookieSessions('express.sid'))
     app.use(app.router);
     app.use(express.static(__dirname + '/public'));
   });
@@ -191,19 +188,7 @@ if (cluster.isMaster) {
 
     var _signed_cookies = cookie.parse(decodeURIComponent(data.headers.cookie));
     data.cookie = connect.utils.parseSignedCookies(_signed_cookies, SECRET);
-
     data.sessionID = data.cookie['express.sid'];
-
-    sessionStore.get(data.sessionID, function(err, session){
-      if (err) {
-        return accept('Error in session store.', false);
-      } else if (!session) {
-        return accept('Session not found.', false);
-      }
-
-      data.session = session;
-      return accept(null, true);
-    });
   });
 
   io.set('log level', 1);

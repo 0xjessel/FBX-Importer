@@ -7,6 +7,18 @@ var app       = require('./app.js')
 
 var orderedMonths = [ 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' ];
 
+  exports.cookieSessions = function(name) {
+    return function(req, res, next) {
+      req.session = req.signedCookies[name] || {};
+
+      res.on('header', function(){
+        res.signedCookie(name, req.session, { signed: true });
+      });
+
+      next();
+    }
+  }
+
 exports.validateRequest = function(sessionID, file) {
   Validator.prototype.error = function (msg) {
       this._errors.push(msg);
