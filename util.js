@@ -12,7 +12,7 @@ var orderedMonths = [ 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'S
       req.session = req.signedCookies[name] || {};
 
       res.on('header', function(){
-        res.signedCookie(name, req.session, { signed: true });
+        res.cookie(name, req.session, { signed: true });
       });
 
       next();
