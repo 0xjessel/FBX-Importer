@@ -14,15 +14,10 @@ var express        = require('express')
   , io             = exports.io = require('socket.io').listen(server)
 ;
 
-try {
-  var conf = require('./conf.js');
-} catch (e) {
-}
-
 var SECRET = 'xanga';
 var cookieParser = express.cookieParser(SECRET);
 var sessionStore = new express.session.MemoryStore();
-var mixpanel = exports.mixpanel = require('mixpanel').init(process.env.MIXPANEL ? process.env.MIXPANEL : conf.mixpanel)
+var mixpanel = exports.mixpanel = require('mixpanel').init(process.env.MIXPANEL);
 
 
 // map of session id to a variety of data related to a session
@@ -64,9 +59,9 @@ app.get('/auth/facebook', function(req, res) {
   // so we'll redirect to the oauth dialog
   if (!req.query.code) {
     var authUrl = graph.getOauthUrl({
-        'client_id':     process.env.CLIENT_ID ? process.env.CLIENT_ID : conf.client_id
-      , 'redirect_uri':  process.env.REDIRECT_URI ? process.env.REDIRECT_URI : conf.redirect_uri
-      , 'scope':         process.env.SCOPE ? process.env.SCOPE : conf.scope
+        'client_id':     process.env.CLIENT_ID
+      , 'redirect_uri':  process.env.REDIRECT_URI
+      , 'scope':         process.env.SCOPE
     });
 
     if (!req.query.error) { //checks whether a user denied the app facebook login/permissions
@@ -80,10 +75,10 @@ app.get('/auth/facebook', function(req, res) {
   // code is set
   // we'll send that and get the access token
   graph.authorize({
-      'client_id':     process.env.CLIENT_ID ? process.env.CLIENT_ID : conf.client_id
-    , 'redirect_uri':  process.env.REDIRECT_URI ? process.env.REDIRECT_URI : conf.redirect_uri
-    , 'scope':         process.env.SCOPE ? process.env.SCOPE : conf.scope
-    , 'code':           req.query.code
+      'client_id':     process.env.CLIENT_ID
+    , 'redirect_uri':  process.env.REDIRECT_URI
+    , 'scope':         process.env.SCOPE
+    , 'code':          req.query.code
   }, function (err, facebookRes) {
     res.redirect('/upload');
   });
