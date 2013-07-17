@@ -201,7 +201,14 @@ io.sockets.on('connection', function(socket) {
   socket.join(sessionID);
 
   socket.on('start processing', function() {
-    util.processFile(sessionID);
+    try {
+      util.processFile(sessionID);
+    } catch (e) {
+      console.log(e);
+
+      fs.unlink(app.SESSIONID_DATA_MAP[sessionID].filepath);
+      delete app.SESSIONID_DATA_MAP[sessionID];
+    }
   });
 });
 
