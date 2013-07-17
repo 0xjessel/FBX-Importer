@@ -71,7 +71,10 @@ app.get('/auth/facebook', function(req, res) {
     }
     return;
   }
+console.log(process.env.CLIENT_ID);
+console.log(process.env.REDIRECT_URI);
 
+console.log(req.query.code);
   // code is set
   // we'll send that and get the access token
   graph.authorize({
@@ -80,6 +83,7 @@ app.get('/auth/facebook', function(req, res) {
     , 'scope':         process.env.SCOPE
     , 'code':          req.query.code
   }, function (err, facebookRes) {
+    console.log(err);
     res.redirect('/upload');
   });
 });
