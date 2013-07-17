@@ -136,6 +136,7 @@ if (cluster.isMaster) {
     var errors = util.validateRequest(req.sessionID, file);
 
     if (errors.length === 0) {
+      console.log(req);
       SESSIONID_DATA_MAP[req.sessionID] = {
         filepath: file.path,
         notes_created: 0,
@@ -182,12 +183,14 @@ if (cluster.isMaster) {
   });
 
   io.set('authorization', function(data, accept){
+    console.log(data.headers.cookie);
     if (!data.headers.cookie) {
       return accept('Session cookie required.', false);
     }
 
     var _signed_cookies = cookie.parse(decodeURIComponent(data.headers.cookie));
     data.cookie = connect.utils.parseSignedCookies(_signed_cookies, SECRET);
+    console.log(data.cookie['express.sid']);
     data.sessionID = data.cookie['express.sid'];
   });
 
@@ -195,7 +198,7 @@ if (cluster.isMaster) {
 
   io.sockets.on('connection', function(socket) {
     var sessionID = socket.handshake.sessionID;
-
+    console.log(sessionID);
     socket.join(sessionID);
 
     socket.on('start processing', function() {
