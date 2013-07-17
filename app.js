@@ -1,117 +1,140 @@
 /**
  * Module dependencies.
  */
-var cluster = require('cluster');
 
-// Code to run if we're in the master process
-if (cluster.isMaster) {
-    // Count the machine's CPUs
-    var cpuCount = require('os').cpus().length;
+var express        = require('express')
+  , connect        = require('connect')
+  , cookie         = require('cookie')
+  , http           = require('http')
+  , graph          = require('fbgraph')
+  , app            = express()
+  , server         = http.createServer(app)
+  , util           = require('./util.js')
+  , fs             = require('fs')
+  , io             = exports.io = require('socket.io').listen(server)
+;
 
-    // Create a worker for each CPU
-    for (var i = 0; i < cpuCount; i += 1) {
-        cluster.fork();
-    }
-// Code to run if we're in a worker process
-} else {
-  var express        = require('express')
-    , connect        = require('connect')
-    , cookie         = require('cookie')
-    , http           = require('http')
-    , graph          = require('fbgraph')
-    , app            = express()
-    , server         = http.createServer(app)
-    , util           = require('./util.js')
-    , fs             = require('fs')
-    , io             = exports.io = require('socket.io').listen(server)
-  ;
-
-  var SECRET = 'xanga';
-  var cookieParser = express.cookieParser(SECRET);
-  //var sessionStore = new express.session.MemoryStore();
-  var mixpanel = exports.mixpanel = require('mixpanel').init(process.env.MIXPANEL);
+var SECRET = 'xanga';
+var cookieParser = express.cookieParser(SECRET);
+var sessionStore = new express.session.MemoryStore();
+var mixpanel = exports.mixpanel = require('mixpanel').init(process.env.MIXPANEL);
 
 
-  // map of session id to a variety of data related to a session
-  var SESSIONID_DATA_MAP = exports.SESSIONID_DATA_MAP = {};
+// map of session id to a variety of data related to a session
+var SESSIONID_DATA_MAP = exports.SESSIONID_DATA_MAP = {};
 
+// Configuration
 
-  // Configuration
+app.configure(function() {
+  app.set('views', __dirname + '/views');
+  app.set('view engine', 'jade');
+  app.use(express.bodyParser());
+  app.use(express.methodOverride());
+  app.use(cookieParser);
+  app.use(express.session({
+    key: 'express.sid'
+  , store: sessionStore
+  }));
+  app.use(app.router);
+  app.use(express.static(__dirname + '/public'));
+});
 
-  app.configure(function() {
-    app.set('views', __dirname + '/views');
-    app.set('view engine', 'jade');
-    app.use(express.bodyParser());
-    app.use(express.methodOverride());
-    app.use(cookieParser);
-    app.use(util.cookieSessions('express.sid'))
-    app.use(app.router);
-    app.use(express.static(__dirname + '/public'));
-  });
+app.configure('development', function() {
+  app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
+});
 
-  app.configure('development', function() {
-    app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
-  });
+app.configure('production', function() {
+  app.use(express.errorHandler());
+});
 
-  app.configure('production', function() {
-    app.use(express.errorHandler());
-  });
+// Routes
 
-  // Routes
+app.get('/', function(req, res) {
+  mixpanel.track('Home Page Loaded');
+  res.render('index', { title: 'FBX Importer' });
+});
 
-  app.get('/', function(req, res) {
-    mixpanel.track('Home Page Loaded');
-    res.render('index', { title: 'FBX Importer' });
-  });
-
-  app.get('/auth/facebook', function(req, res) {
-    // we don't have a code yet
-    // so we'll redirect to the oauth dialog
-    if (!req.query.code) {
-      var authUrl = graph.getOauthUrl({
-          'client_id':     process.env.CLIENT_ID
-        , 'redirect_uri':  process.env.REDIRECT_URI
-        , 'scope':         process.env.SCOPE
-      });
-
-      if (!req.query.error) { //checks whether a user denied the app facebook login/permissions
-        res.redirect(authUrl);
-      } else {  //req.query.error == 'access_denied'
-        res.send('access denied');
-      }
-      return;
-    }
-
-    // code is set
-    // we'll send that and get the access token
-    graph.authorize({
+app.get('/auth/facebook', function(req, res) {
+  // we don't have a code yet
+  // so we'll redirect to the oauth dialog
+  if (!req.query.code) {
+    var authUrl = graph.getOauthUrl({
         'client_id':     process.env.CLIENT_ID
       , 'redirect_uri':  process.env.REDIRECT_URI
-      , 'client_secret': process.env.CLIENT_SECRET
       , 'scope':         process.env.SCOPE
-      , 'code':          req.query.code
-    }, function (err, facebookRes) {
-      res.redirect('/upload');
+    });
+
+    if (!req.query.error) { //checks whether a user denied the app facebook login/permissions
+      res.redirect(authUrl);
+    } else {  //req.query.error == 'access_denied'
+      res.send('access denied');
+    }
+    return;
+  }
+
+  // code is set
+  // we'll send that and get the access token
+  graph.authorize({
+      'client_id':     process.env.CLIENT_ID
+    , 'redirect_uri':  process.env.REDIRECT_URI
+    , 'client_secret': process.env.CLIENT_SECRET
+    , 'scope':         process.env.SCOPE
+    , 'code':          req.query.code
+  }, function (err, facebookRes) {
+    res.redirect('/upload');
+  });
+});
+
+// user gets sent here after being authorized
+app.get('/upload', function(req, res) {
+  if (!graph.getAccessToken()) {
+    res.redirect('/');
+    return;
+  }
+
+  mixpanel.track('Upload Page Loaded');
+  graph.get('me?fields=id', function (err, res) {
+    mixpanel.people.set(res.id, {
+      $created: (new Date().toISOString()),
+      name: res.id,
+      notes_created: 0,
+      notes_failed: 0,
     });
   });
 
-  // user gets sent here after being authorized
-  app.get('/upload', function(req, res) {
-    if (!graph.getAccessToken()) {
-      res.redirect('/');
-      return;
-    }
+  util.getPrivacySetting(function(name, privacyString) {
+    res.render(
+      'upload',
+      {
+        title: 'Upload ZIP File',
+        name: name,
+        privacyString: privacyString,
+        errors: {}
+      }
+    );
+  });
+});
 
-    mixpanel.track('Upload Page Loaded');
-    graph.get('me?fields=id', function (err, res) {
-      mixpanel.people.set(res.id, {
-        $created: (new Date().toISOString()),
-        name: res.id,
-        notes_created: 0,
-        notes_failed: 0,
-      });
-    });
+// user gets sent here after uploading a zip file
+app.post('/processing', function(req, res) {
+  mixpanel.track('Zip File Uploaded');
+  var file = req.files.archive;
 
+  // not sure if this is necessary..but better safe than sorry
+  fs.chmod(file.path, '600');
+
+  var errors = util.validateRequest(req.sessionID, file);
+
+  if (errors.length === 0) {
+    SESSIONID_DATA_MAP[req.sessionID] = {
+      filepath: file.path,
+      notes_created: 0,
+      notes_failed: 0,
+      num_files: 0,
+      started: false,
+    };
+    res.redirect('/status');
+  } else {
     util.getPrivacySetting(function(name, privacyString) {
       res.render(
         'upload',
@@ -119,114 +142,78 @@ if (cluster.isMaster) {
           title: 'Upload ZIP File',
           name: name,
           privacyString: privacyString,
-          errors: {}
+          errors: errors
         }
       );
     });
-  });
 
-  // user gets sent here after uploading a zip file
-  app.post('/processing', function(req, res) {
-    mixpanel.track('Zip File Uploaded');
-    var file = req.files.archive;
+    // delete the files
+    fs.unlink(file.path);
+  }
+});
 
-    // not sure if this is necessary..but better safe than sorry
-    fs.chmod(file.path, '600');
+app.get('/status', function(req, res) {
+  var sessionData = SESSIONID_DATA_MAP[req.sessionID];
+  if (!sessionData) {
+    res.redirect('/');
+    return;
+  }
 
-    var errors = util.validateRequest(req.sessionID, file);
+  mixpanel.track('Status Page Loaded');
 
-    if (errors.length === 0) {
-      console.log(req);
-      SESSIONID_DATA_MAP[req.sessionID] = {
-        filepath: file.path,
-        notes_created: 0,
-        notes_failed: 0,
-        num_files: 0,
-        started: false,
-      };
-      res.redirect('/status');
-    } else {
-      util.getPrivacySetting(function(name, privacyString) {
-        res.render(
-          'upload',
-          {
-            title: 'Upload ZIP File',
-            name: name,
-            privacyString: privacyString,
-            errors: errors
-          }
-        );
-      });
+  res.render(
+    'status',
+    { title: 'Import Status' }
+  );
+});
 
-      // delete the files
-      fs.unlink(file.path);
-    }
-  });
+app.get('/faq', function(req, res) {
+  res.render('faq', { title: 'FAQ', isFAQ: true });
+});
 
-  app.get('/status', function(req, res) {
-    var sessionData = SESSIONID_DATA_MAP[req.sessionID];
-    if (!sessionData) {
-      res.redirect('/');
-      return;
+io.set('authorization', function(data, accept){
+  if (!data.headers.cookie) {
+    return accept('Session cookie required.', false);
+  }
+
+  var _signed_cookies = cookie.parse(decodeURIComponent(data.headers.cookie));
+  data.cookie = connect.utils.parseSignedCookies(_signed_cookies, SECRET);
+
+  data.sessionID = data.cookie['express.sid'];
+
+  sessionStore.get(data.sessionID, function(err, session){
+    if (err) {
+      return accept('Error in session store.', false);
+    } else if (!session) {
+      return accept('Session not found.', false);
     }
 
-    mixpanel.track('Status Page Loaded');
-
-    res.render(
-      'status',
-      { title: 'Import Status' }
-    );
+    data.session = session;
+    return accept(null, true);
   });
+});
 
-  app.get('/faq', function(req, res) {
-    res.render('faq', { title: 'FAQ', isFAQ: true });
-  });
+io.set('log level', 1);
 
-  io.set('authorization', function(data, accept){
-    console.log(data.headers.cookie);
-    if (!data.headers.cookie) {
-      return accept('Session cookie required.', false);
+io.sockets.on('connection', function(socket) {
+  var sessionID = socket.handshake.sessionID;
+
+  socket.join(sessionID);
+
+  socket.on('start processing', function() {
+    try {
+      util.processFile(sessionID);
+    } catch (e) {
+      console.log('exception while processing file ' + e);
+      console.trace();
+
+      fs.unlink(app.SESSIONID_DATA_MAP[sessionID].filepath);
+      delete app.SESSIONID_DATA_MAP[sessionID];
     }
-
-    var _signed_cookies = cookie.parse(decodeURIComponent(data.headers.cookie));
-    data.cookie = connect.utils.parseSignedCookies(_signed_cookies, SECRET);
-    console.log(data.cookie['express.sid']);
-    data.sessionID = data.cookie['express.sid'];
   });
+});
 
-  io.set('log level', 1);
-
-  io.sockets.on('connection', function(socket) {
-    var sessionID = socket.handshake.sessionID;
-    console.log(sessionID);
-    socket.join(sessionID);
-
-    socket.on('start processing', function() {
-      try {
-        util.processFile(sessionID);
-      } catch (e) {
-        console.log('exception while processing file ' + e);
-        console.trace();
-
-        fs.unlink(app.SESSIONID_DATA_MAP[sessionID].filepath);
-        delete app.SESSIONID_DATA_MAP[sessionID];
-      }
-    });
-  });
-
-  var port = process.env.PORT || 3000;
-  server.listen(port, function() {
-    console.log(
-      'Express server listening on port %d, worker %d running',
-      port,
-      cluster.worker.id
-    );
-  });
-}
-
-// Listen for dying workers
-cluster.on('exit', function (worker) {
-    // Replace the dead worker
-    console.log('Worker ' + worker.id + ' died :\'(');
-    cluster.fork();
+var port = process.env.PORT || 3000;
+server.listen(port, function() {
+  console.log('Express server listening on port %d', port);
 });
