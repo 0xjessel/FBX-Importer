@@ -204,7 +204,8 @@ io.sockets.on('connection', function(socket) {
     try {
       util.processFile(sessionID);
     } catch (e) {
-      console.log(e);
+      console.log('exception while processing file ' + e);
+      console.trace();
 
       fs.unlink(app.SESSIONID_DATA_MAP[sessionID].filepath);
       delete app.SESSIONID_DATA_MAP[sessionID];
