@@ -81,7 +81,6 @@ app.get('/auth/facebook', function(req, res) {
     , 'scope':         process.env.SCOPE
     , 'code':          req.query.code
   }, function (err, facebookRes) {
-    console.log(facebookRes);
     req.session.access_token = facebookRes.access_token;
     res.redirect('/upload');
   });
