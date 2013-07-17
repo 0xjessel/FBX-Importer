@@ -14,6 +14,13 @@ html(lang="en")
           | Import your Xanga blog posts to Facebook before Xanga shuts down&nbsp;
           img(src="/img/shocked.gif")
         a#login(href='/auth/facebook')
+        div.fb-facepile(
+          data-href="http://fbximporter.jessechen.net/",
+          data-app-id="194013687428416",
+          data-max-rows="1",
+          data-size="large",
+          data-width="300",
+        )
       hr
 
       div.row-fluid.marketing
@@ -32,8 +39,8 @@ html(lang="en")
           h4 Facebook Login
           p
             | FBX Importer requires Facebook Login.  However, The only
-            | permission that we ask is the ability to publish Facebook Notes.
-            | The default privacy for those notes is&nbsp;
+            | permission that we ask is the ability to create Facebook Notes on
+            | your behalf.  The default privacy for those notes is&nbsp;
             b Only Me
             |  unless you choose otherwise.&nbsp;
             img(src="/img/silly.gif")
@@ -42,7 +49,8 @@ html(lang="en")
           h4 Open Source
           p
             | FBX Importer is open source, which means that you and others can see
-            | the source code that makes this app work.  Feel free to&nbsp;
+            | the source code that makes this app work.  We do not store your xanga
+            | entries not that we even want to read it anyway.  Feel free to&nbsp;
             a(
               href="https://github.com/meltedxice/FBX-Importer",
               target="_blank"

@@ -64,9 +64,10 @@ socket.on('processing complete', function(data) {
   // update console
   var consoleDiv = $('.console');
   consoleDiv.append('<p>========================</p>');
-  consoleDiv.append('<p>archive.zip file deleted</p>');
+  consoleDiv.append('<p>archive.zip deleted off server</p>');
   consoleDiv.append('<p>' + success + ' note(s) successfully created</p>');
   consoleDiv.append('<p>' + failures + ' note(s) failed to be created</p>');
+  consoleDiv.append('<p>Visit the <a href="/faq">FAQ for commonly asked questions.');
   consoleDiv[0].scrollTop = consoleDiv[0].scrollHeight;
 
   $('#status_text').text('Import Completed!');
