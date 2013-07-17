@@ -21,8 +21,8 @@ html(lang="en")
           div.alert.alert-error
             p.errorMessage= "The following errors occurred:"
             ul
-            - each error in errors
-              li!= error
+              - each error in errors
+                li!= error
 
         h1 Upload archive.zip
         p
