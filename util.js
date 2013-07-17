@@ -46,7 +46,7 @@ exports.validateRequest = function(sessionID, file) {
   return validator.getErrors();
 }
 
-exports.getPrivacySetting = function(callback) {
+exports.getPrivacySetting = function(access_token, callback) {
   var privacyMap = {};
   privacyMap['SELF'] = 'Only Me';
   privacyMap['FRIENDS_OF_FRIENDS'] = 'Friends of Friends';
@@ -56,9 +56,13 @@ exports.getPrivacySetting = function(callback) {
 
   var query = 'SELECT value FROM privacy_setting WHERE name=\'default_stream_privacy\'';
 
-  graph.fql(query, function(err, res) {
+  graph
+    .setAccessToken(access_token)
+    .fql(query, function(err, res) {
     var value = res.data[0].value;
-    graph.get('me?fields=name', function (err2, res2) {
+    graph
+      .setAccessToken(access_token)
+      .get('me?fields=name', function (err2, res2) {
       callback(res2.name, privacyMap[value]);
     });
   });
@@ -214,10 +218,14 @@ function createFBNote(sessionID, title, message, callback) {
   };
   var sessionData = app.SESSIONID_DATA_MAP[sessionID];
 
-  graph.post('me/notes', note, function (err, res) {
+  graph
+    .setAccessToken(sessionData.access_token)
+    .post('me/notes', note, function (err, res) {
     var success = res.id !== undefined;
 
-    graph.get('me?fields=id', function (err2, res2) {
+    graph
+      .setAccessToken(sessionData.access_token)
+      .get('me?fields=id', function (err2, res2) {
       if (success) {
         app.mixpanel.people.increment(res2.id, 'notes_created');
 

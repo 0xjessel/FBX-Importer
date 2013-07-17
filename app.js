@@ -81,19 +81,24 @@ app.get('/auth/facebook', function(req, res) {
     , 'scope':         process.env.SCOPE
     , 'code':          req.query.code
   }, function (err, facebookRes) {
+    console.log(facebookRes);
+    req.session.access_token = facebookRes;
     res.redirect('/upload');
   });
 });
 
 // user gets sent here after being authorized
 app.get('/upload', function(req, res) {
-  if (!graph.getAccessToken()) {
+  console.log(req.session.access_token);
+  if (!req.session.access_token) {
     res.redirect('/');
     return;
   }
 
   mixpanel.track('Upload Page Loaded');
-  graph.get('me?fields=id', function (err, res) {
+  graph
+    .setAccessToken(req.session.access_token)
+    .get('me?fields=id', function (err, res) {
     mixpanel.people.set(res.id, {
       $created: (new Date().toISOString()),
       name: res.id,
@@ -102,7 +107,7 @@ app.get('/upload', function(req, res) {
     });
   });
 
-  util.getPrivacySetting(function(name, privacyString) {
+  util.getPrivacySetting(req.session.access_token, function(name, privacyString) {
     res.render(
       'upload',
       {
@@ -132,10 +137,11 @@ app.post('/processing', function(req, res) {
       notes_failed: 0,
       num_files: 0,
       started: false,
+      access_token: req.session.access_token
     };
     res.redirect('/status');
   } else {
-    util.getPrivacySetting(function(name, privacyString) {
+    util.getPrivacySetting(req.session.access_token, function(name, privacyString) {
       res.render(
         'upload',
         {
