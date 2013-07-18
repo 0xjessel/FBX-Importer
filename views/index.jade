@@ -9,11 +9,16 @@ html(lang="en")
       include includes/header
 
       div.jumbotron
+        div.alert.alert-error
+          p
+            | Temporarily disabling the importer while I work with Facebook to
+            | not block the user when posting notes from FBX Importer.  Sorry
+            | for the inconvenience!  It will be back up shortly.
         h1 Xanga &#9658; Facebook
         p.lead
           | Import your Xanga blog posts to Facebook before Xanga shuts down&nbsp;
           img(src="/img/shocked.gif")
-        a#login(href='/auth/facebook')
+        - // a#login(href='/auth/facebook')
         div.fb-like(
           data-href="http://fbximporter.jessechen.net/",
           data-send="false",
