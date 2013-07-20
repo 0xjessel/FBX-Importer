@@ -4,6 +4,7 @@
 
 var express        = require('express')
   , connect        = require('connect')
+  , RedisStore     = require('connect-redis')(express)
   , cookie         = require('cookie')
   , http           = require('http')
   , graph          = require('fbgraph')
@@ -14,33 +15,52 @@ var express        = require('express')
   , io             = exports.io = require('socket.io').listen(server)
 ;
 
-var SECRET = 'xanga';
-var cookieParser = express.cookieParser(SECRET);
-var sessionStore = new express.session.MemoryStore();
-var mixpanel = exports.mixpanel = require('mixpanel').init(process.env.MIXPANEL);
+// redis config
+var redis;
+if (process.env.REDISTOGO_URL) { // heroku
+  var rtg   = require('url').parse(process.env.REDISTOGO_URL);
+  redis = require('redis').createClient(rtg.port, rtg.hostname);
+  redis.auth(rtg.auth.split(':')[1]);
+} else { // localhost
+  redis = require('redis').createClient(16379, '127.7.255.129');
+}
+
+redis.on('ready', function() {
+  console.log('info: connected to redis');
+});
+
+redis.on("error", function (err) {
+    console.log("Error " + err);
+});
 
 
+// session config
+var SECRET = process.env.CLIENT_SECRET || 'xanga';
+var sessionStore = new RedisStore({ client: redis });
+var mixpanel = exports.mixpanel = require('mixpanel').init(process.env.MIXPANEL || conf.mixpanel);
 // map of session id to a variety of data related to a session
 var SESSIONID_DATA_MAP = exports.SESSIONID_DATA_MAP = {};
 
 // Configuration
 
 app.configure(function() {
+  app.use(express.cookieParser(SECRET));
+  app.use(express.session({
+    store: sessionStore
+  , secret: SECRET
+  }));
   app.set('views', __dirname + '/views');
   app.set('view engine', 'jade');
   app.use(express.bodyParser());
   app.use(express.methodOverride());
-  app.use(cookieParser);
-  app.use(express.session({
-    key: 'express.sid'
-  , store: sessionStore
-  }));
   app.use(app.router);
   app.use(express.static(__dirname + '/public'));
   app.use(express.favicon(__dirname + '/public/img/favicon.ico'));
 });
 
+var conf;
 app.configure('development', function() {
+  conf = require('./conf.js');
   app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
 });
 
@@ -60,9 +80,9 @@ app.get('/auth/facebook', function(req, res) {
   // so we'll redirect to the oauth dialog
   if (!req.query.code) {
     var authUrl = graph.getOauthUrl({
-        'client_id':     process.env.CLIENT_ID
-      , 'redirect_uri':  process.env.REDIRECT_URI
-      , 'scope':         process.env.SCOPE
+        'client_id':     process.env.CLIENT_ID || conf.client_id
+      , 'redirect_uri':  process.env.REDIRECT_URI || conf.redirect_uri
+      , 'scope':         process.env.SCOPE || conf.scope
     });
 
     if (!req.query.error) { //checks whether a user denied the app facebook login/permissions
@@ -76,10 +96,10 @@ app.get('/auth/facebook', function(req, res) {
   // code is set
   // we'll send that and get the access token
   graph.authorize({
-      'client_id':     process.env.CLIENT_ID
-    , 'redirect_uri':  process.env.REDIRECT_URI
-    , 'client_secret': process.env.CLIENT_SECRET
-    , 'scope':         process.env.SCOPE
+      'client_id':     process.env.CLIENT_ID || conf.client_id
+    , 'redirect_uri':  process.env.REDIRECT_URI || conf.redirect_uri
+    , 'client_secret': process.env.CLIENT_SECRET || conf.client_secret
+    , 'scope':         process.env.SCOPE || conf.scope
     , 'code':          req.query.code
   }, function (err, facebookRes) {
     req.session.access_token = facebookRes.access_token;
@@ -89,7 +109,6 @@ app.get('/auth/facebook', function(req, res) {
 
 // user gets sent here after being authorized
 app.get('/upload', function(req, res) {
-  console.log(req.session.access_token);
   if (!req.session.access_token) {
     res.redirect('/');
     return;
@@ -160,11 +179,13 @@ app.post('/processing', function(req, res) {
 
 app.get('/status', function(req, res) {
   var sessionData = SESSIONID_DATA_MAP[req.sessionID];
+  /*
   if (!sessionData) {
     res.redirect('/');
     return;
   }
 
+*/
   mixpanel.track('Status Page Loaded');
 
   res.render(
@@ -182,12 +203,10 @@ io.set('authorization', function(data, accept){
     return accept('Session cookie required.', false);
   }
 
-  var _signed_cookies = cookie.parse(decodeURIComponent(data.headers.cookie));
-  data.cookie = connect.utils.parseSignedCookies(_signed_cookies, SECRET);
+  var _signed_cookie = cookie.parse(data.headers.cookie);
+  data.sessionID = connect.utils.parseSignedCookie(_signed_cookie['connect.sid'], SECRET);
 
-  data.sessionID = data.cookie['express.sid'];
-
-  sessionStore.get(data.sessionID, function(err, session){
+  sessionStore.get(data.sessionID, function(err, session) {
     if (err) {
       return accept('Error in session store.', false);
     } else if (!session) {
