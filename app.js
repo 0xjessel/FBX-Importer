@@ -18,6 +18,8 @@ if (cluster.isMaster) {
   var express        = require('express')
     , connect        = require('connect')
     , RedisStore     = require('connect-redis')(express)
+    , ioRedisStore   = require('socket.io/lib/stores/redis')
+    , ioRedis        = require('socket.io/node_modules/redis')
     , cookie         = require('cookie')
     , http           = require('http')
     , graph          = require('fbgraph')
@@ -28,14 +30,29 @@ if (cluster.isMaster) {
     , io             = exports.io = require('socket.io').listen(server)
   ;
 
+  var pub, sub, client;
+
   // redis config
   var redis;
   if (process.env.REDISTOGO_URL) { // heroku
     var rtg   = require('url').parse(process.env.REDISTOGO_URL);
-    redis = require('redis').createClient(rtg.port, rtg.hostname);
+    redis = ioRedis.createClient(rtg.port, rtg.hostname);
     redis.auth(rtg.auth.split(':')[1]);
+
+    pub = ioRedis.createClient(rtg.port, rtg.hostname);
+    pub.auth(rtg.auth.split(':')[1]);
+
+    sub = ioRedis.createClient(rtg.port, rtg.hostname);
+    sub.auth(rtg.auth.split(':')[1]);
+
+    client = ioRedis.createClient(rtg.port, rtg.hostname);
+    client.auth(rtg.auth.split(':')[1]);
   } else { // localhost
-    redis = require('redis').createClient(16379, '127.7.255.129');
+    redis = ioRedis.createClient(16379, '127.7.255.129');
+
+    pub = ioRedis.createClient(16379, '127.7.255.129');
+    sub = ioRedis.createClient(16379, '127.7.255.129');
+    client = ioRedis.createClient(16379, '127.7.255.129');
   }
 
   redis.on('ready', function() {
@@ -43,13 +60,13 @@ if (cluster.isMaster) {
   });
 
   redis.on("error", function (err) {
-      console.log("Error " + err);
+    console.log("Redis Error " + err);
   });
-
 
   // session config
   var SECRET = process.env.CLIENT_SECRET || 'xanga';
   var sessionStore = new RedisStore({ client: redis });
+  var ioSessionStore = new ioRedisStore({ redis: ioRedis, redisPub: pub, redisSub: sub, redisClient: redis });
   var mixpanel = exports.mixpanel = require('mixpanel').init(process.env.MIXPANEL || '555');
   // map of session id to a variety of data related to a session
   var SESSIONID_DATA_MAP = exports.SESSIONID_DATA_MAP = {};
@@ -210,6 +227,8 @@ if (cluster.isMaster) {
   app.get('/faq', function(req, res) {
     res.render('faq', { title: 'FAQ', isFAQ: true });
   });
+
+  io.set('store', ioSessionStore);
 
   io.set('authorization', function(data, accept){
     if (!data.headers.cookie) {
