@@ -37,6 +37,7 @@ app.configure(function() {
   }));
   app.use(app.router);
   app.use(express.static(__dirname + '/public'));
+  app.use(express.favicon(__dirname + '/public/img/favicon.ico'));
 });
 
 app.configure('development', function() {
