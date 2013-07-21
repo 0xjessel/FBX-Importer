@@ -1,7 +1,7 @@
 /**
  * Module dependencies.
  */
-var cluster = require('cluster');
+var cluster = exports.cluster = require('cluster');
 
 // Code to run if we're in the master process
 if (cluster.isMaster) {
@@ -54,7 +54,7 @@ if (cluster.isMaster) {
   }
 
   redis.on('ready', function() {
-    console.log('info: connected to redis');
+    console.log('info: connected to redis on worker ' + cluster.worker.id);
   });
 
   redis.on("error", function (err) {
@@ -240,7 +240,7 @@ if (cluster.isMaster) {
   });
 
   io.configure(function() {
-    io.set('log level', 1);
+    io.set('log level', 0);
     io.set('store', ioSessionStore);
     io.set("transports", ["xhr-polling"]);
     io.set("polling duration", 10);
