@@ -140,6 +140,8 @@ if (cluster.isMaster) {
             , 'access_token': facebookRes.access_token
             },
             function(err, reply) {
+              // automatically expire this session in 60 minutes
+              client.expire(req.sessionID, 3600);
               res.redirect('/upload');
             }
           );

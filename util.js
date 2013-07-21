@@ -45,7 +45,7 @@ exports.validateRequest = function(sessionID, file, callback) {
     validator.check(
       started != 1,
       'You just recently started the importing process.  Please view the ' +
-      'status of your import <a href="/status">here</a>.'
+      'status of your import <a href="/status">here</a> or try again in 1 hour.'
     ).equals(true);
 
     callback(validator.getErrors());
