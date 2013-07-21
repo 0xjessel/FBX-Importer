@@ -49,6 +49,7 @@ socket.on('create note', function(data) {
 
 // increment progress bar and metadata
 socket.on('file start', function(data) {
+  console.log('file start, index ' + data.currentIndex);
   var fileName = data.filename;
   currentIndex = data.currentIndex;
 
