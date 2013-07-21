@@ -2,8 +2,6 @@
  * Module dependencies.
  */
 var cluster = require('cluster');
-// map of session id to a variety of data related to a session
-var SESSIONID_DATA_MAP = exports.SESSIONID_DATA_MAP = {};
 
 // Code to run if we're in the master process
 if (cluster.isMaster) {
@@ -31,10 +29,9 @@ if (cluster.isMaster) {
     , io             = exports.io = require('socket.io').listen(server)
   ;
 
-  var pub, sub, client;
 
   // redis config
-  var redis;
+  var redis, pub, sub, client;
   if (process.env.REDISTOGO_URL) { // heroku
     var rtg   = require('url').parse(process.env.REDISTOGO_URL);
     redis = ioRedis.createClient(rtg.port, rtg.hostname);
@@ -46,14 +43,14 @@ if (cluster.isMaster) {
     sub = ioRedis.createClient(rtg.port, rtg.hostname);
     sub.auth(rtg.auth.split(':')[1]);
 
-    client = ioRedis.createClient(rtg.port, rtg.hostname);
+    client = exports.client = ioRedis.createClient(rtg.port, rtg.hostname);
     client.auth(rtg.auth.split(':')[1]);
   } else { // localhost
     redis = ioRedis.createClient(16379, '127.7.255.129');
 
     pub = ioRedis.createClient(16379, '127.7.255.129');
     sub = ioRedis.createClient(16379, '127.7.255.129');
-    client = ioRedis.createClient(16379, '127.7.255.129');
+    client = exports.client = ioRedis.createClient(16379, '127.7.255.129');
   }
 
   redis.on('ready', function() {
@@ -67,7 +64,7 @@ if (cluster.isMaster) {
   // session config
   var SECRET = process.env.CLIENT_SECRET || 'xanga';
   var sessionStore = new RedisStore({ client: redis });
-  var ioSessionStore = new ioRedisStore({ redis: ioRedis, redisPub: pub, redisSub: sub, redisClient: redis });
+  var ioSessionStore = new ioRedisStore({ redis: ioRedis, redisPub: pub, redisSub: sub, redisClient: client });
   var mixpanel = exports.mixpanel = require('mixpanel').init(process.env.MIXPANEL || '555');
 
   // Configuration
@@ -131,40 +128,60 @@ if (cluster.isMaster) {
       , 'scope':         process.env.SCOPE || conf.scope
       , 'code':          req.query.code
     }, function (err, facebookRes) {
-      req.session.access_token = facebookRes.access_token;
-      res.redirect('/upload');
+      client.hgetall(req.sessionID, function(err, list) {
+        if (list === null) {
+          console.log('creating hash....key is: ');
+          console.log(req.sessionID);
+          client.hmset(req.sessionID, {
+              'notes_created': '0'
+            , 'notes_failed': '0'
+            , 'num_files': '0'
+            , 'started': '0'
+            , 'access_token': facebookRes.access_token
+            },
+            function(err, reply) {
+              res.redirect('/upload');
+            }
+          );
+        } else {
+          console.log('user already created..redirecting');
+          res.redirect('/upload');
+        }
+      })
     });
   });
 
   // user gets sent here after being authorized
   app.get('/upload', function(req, res) {
-    if (!req.session.access_token) {
-      res.redirect('/');
-      return;
-    }
+    client.hget(req.sessionID, 'access_token', function(err, accessToken) {
+      if (!accessToken) {
+        res.redirect('/');
+        return;
+      }
 
-    mixpanel.track('Upload Page Loaded');
-    graph
-      .setAccessToken(req.session.access_token)
-      .get('me?fields=id', function (err, res) {
-      mixpanel.people.set(res.id, {
-        $created: (new Date().toISOString()),
-        name: res.id,
-        notes_created: 0,
-        notes_failed: 0,
+      mixpanel.track('Upload Page Loaded');
+      graph
+        .setAccessToken(accessToken)
+        .get('me?fields=id', function (err, res) {
+        mixpanel.people.set(res.id, {
+          $created: (new Date().toISOString()),
+          name: res.id,
+          notes_created: 0,
+          notes_failed: 0,
+        });
       });
-    });
 
-    util.getPrivacySetting(req.session.access_token, function(name, privacyString) {
-      res.render(
-        'upload',
-        {
-          title: 'Upload ZIP File',
-          name: name,
-          privacyString: privacyString,
-          errors: {}
-        }
-      );
+      util.getPrivacySetting(accessToken, function(name, privacyString) {
+        res.render(
+          'upload',
+          {
+            title: 'Upload ZIP File',
+            name: name,
+            privacyString: privacyString,
+            errors: {}
+          }
+        );
+      });
     });
   });
 
@@ -176,51 +193,46 @@ if (cluster.isMaster) {
     // not sure if this is necessary..but better safe than sorry
     fs.chmod(file.path, '600');
 
-    var errors = util.validateRequest(req.sessionID, file);
-
-    if (errors.length === 0) {
-      SESSIONID_DATA_MAP[req.sessionID] = {
-        filepath: file.path,
-        notes_created: 0,
-        notes_failed: 0,
-        num_files: 0,
-        started: false,
-        access_token: req.session.access_token
-      };
-
-      res.redirect('/status');
-      return;
-    } else {
-      util.getPrivacySetting(req.session.access_token, function(name, privacyString) {
-        res.render(
-          'upload',
-          {
-            title: 'Upload ZIP File',
-            name: name,
-            privacyString: privacyString,
-            errors: errors
+    util.validateRequest(req.sessionID, file, function(errors) {
+      if (errors.length === 0) {
+        client.hset(req.sessionID, 'filepath', file.path, function() {
+            res.redirect('/status');
           }
         );
-      });
+      } else {
+        client.hget(req.sessionID, 'access_token', function(err, accessToken) {
+          util.getPrivacySetting(accessToken, function(name, privacyString) {
+            res.render(
+              'upload',
+              {
+                title: 'Upload ZIP File',
+                name: name,
+                privacyString: privacyString,
+                errors: errors
+              }
+            );
+          });
 
-      // delete the files
-      fs.unlink(file.path);
-    }
+          // delete the files
+          fs.unlink(file.path);
+        });
+      }
+    });
   });
 
   app.get('/status', function(req, res) {
-    var sessionData = SESSIONID_DATA_MAP[req.sessionID];
-    if (!sessionData) {
-      res.redirect('/');
-      return;
-    }
+    client.hgetall(req.sessionID, function(err, list) {
+      if (list === null) {
+        res.redirect('/');
+      } else {
+        mixpanel.track('Status Page Loaded');
 
-    mixpanel.track('Status Page Loaded');
-
-    res.render(
-      'status',
-      { title: 'Import Status' }
-    );
+        res.render(
+          'status',
+          { title: 'Import Status' }
+        );
+      }
+    });
   });
 
   app.get('/faq', function(req, res) {
@@ -265,8 +277,10 @@ if (cluster.isMaster) {
         console.log('exception while processing file ' + e);
         console.trace();
 
-        fs.unlink(SESSIONID_DATA_MAP[sessionID].filepath);
-        delete SESSIONID_DATA_MAP[sessionID];
+        client.hget(sessionID, 'filepath', function(err, filepath) {
+          fs.unlink(filepath);
+          client.del(sessionID);
+        });
       }
     });
   });

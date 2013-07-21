@@ -7,7 +7,7 @@ var app       = require('./app.js')
 
 var orderedMonths = [ 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' ];
 
-exports.validateRequest = function(sessionID, file) {
+exports.validateRequest = function(sessionID, file, callback) {
   Validator.prototype.error = function (msg) {
       this._errors.push(msg);
       return this;
@@ -41,14 +41,15 @@ exports.validateRequest = function(sessionID, file) {
     'File must be in zip format'
   ).equals(true);
 
-  var isNewUpload = app.SESSIONID_DATA_MAP[sessionID] === undefined;
-  validator.check(
-    isNewUpload,
-    'You just recently started the importing process.  Please view the ' +
-    'status of your import <a href="/status">here</a>.'
-  ).equals(true);
+  app.client.hget(sessionID, 'started', function(err, started) {
+    validator.check(
+      started != 1,
+      'You just recently started the importing process.  Please view the ' +
+      'status of your import <a href="/status">here</a>.'
+    ).equals(true);
 
-  return validator.getErrors();
+    callback(validator.getErrors());
+  });
 }
 
 exports.getPrivacySetting = function(access_token, callback) {
@@ -74,68 +75,77 @@ exports.getPrivacySetting = function(access_token, callback) {
 };
 
 exports.processFile = function(sessionID) {
-  var sessionData = app.SESSIONID_DATA_MAP[sessionID];
-  if (!sessionData) {
-    return;
-  } else if (sessionData.started === true) {
-    app.io.sockets.in(sessionID).emit(
-      'resume processing',
-      {
-        numFiles: sessionData.num_files,
-        currentIndex: sessionData.current_index
-      }
-    );
-    return;
-  }
-
-  var zip = new AdmZip(sessionData.filepath);
-  var zipEntries = zip.getEntries();
-
-  // rearrange entries to be chronological
-  var sortedZipEntries = sortFiles(zipEntries);
-
-  sessionData.started = true;
-  sessionData.num_files = sortedZipEntries.length;
-
-  app.io.sockets.in(sessionID).emit(
-    'init processing',
-    { numFiles: sessionData.num_files }
-  );
-
-  var index = 0;
-
-  // recursion so that we post the notes chronologically
-  function parseZipEntry() {
-    if (index < sortedZipEntries.length) {
-      sessionData.current_index = index;
+  app.client.hgetall(sessionID, function(err, sessionData) {
+    if (!Object.keys(sessionData).length) {
+      return;
+    } else if (sessionData.started == 1) {
       app.io.sockets.in(sessionID).emit(
-        'file start',
+        'resume processing',
         {
-          filename: sortedZipEntries[index].entryName,
+          numFiles: sessionData.num_files,
           currentIndex: sessionData.current_index
         }
       );
-
-      parseHTMLFile(sessionID, zip.readAsText(sortedZipEntries[index]), function() {
-        index++;
-        parseZipEntry();
-      });
-    } else {
-      // delete the files
-      fs.unlink(sessionData.filepath);
-
-      app.io.sockets.in(sessionID).emit(
-        'processing complete',
-        {
-          notesCreated: sessionData.notes_created,
-          notesFailed: sessionData.notes_failed
-        }
-      );
-
-      delete app.SESSIONID_DATA_MAP[sessionID];
+      return;
     }
-  }
-  parseZipEntry();
+
+    var zip = new AdmZip(sessionData.filepath);
+    var zipEntries = zip.getEntries();
+
+    // rearrange entries to be chronological
+    var sortedZipEntries = sortFiles(zipEntries);
+
+    app.client.hmset(sessionID, {
+        'started': '1'
+      , 'num_files': sortedZipEntries.length.toString()
+      }
+    );
+
+    app.io.sockets.in(sessionID).emit(
+      'init processing',
+      { numFiles: sortedZipEntries.length }
+    );
+
+    var index = 0;
+
+    // recursion so that we post the notes chronologically
+    function parseZipEntry() {
+      if (index < sortedZipEntries.length) {
+        app.client.hset(sessionID, 'current_index', index.toString());
+        app.io.sockets.in(sessionID).emit(
+          'file start',
+          {
+            filename: sortedZipEntries[index].entryName,
+            currentIndex: index
+          }
+        );
+
+        parseHTMLFile(
+          sessionID,
+          sessionData,
+          zip.readAsText(sortedZipEntries[index]),
+          function() {
+            index++;
+            parseZipEntry();
+          }
+        );
+      } else {
+        // delete the files
+        fs.unlink(sessionData.filepath);
+
+        app.io.sockets.in(sessionID).emit(
+          'processing complete',
+          {
+            notesCreated: sessionData.notes_created,
+            notesFailed: sessionData.notes_failed
+          }
+        );
+
+        app.client.del(sessionID);
+      }
+    }
+    parseZipEntry();
+  });
 };
 
 /**
@@ -169,7 +179,7 @@ function sortFiles(entries) {
   return filteredSortedEntries;
 };
 
-function parseHTMLFile(sessionID, data, callback) {
+function parseHTMLFile(sessionID, sessionData, data, callback) {
   var $ = cheerio.load(data);
 
   // filter out comment titles
@@ -184,7 +194,7 @@ function parseHTMLFile(sessionID, data, callback) {
   function postNoteFromBlog() {
     if (index < titles.length) {
       var data = getBlogData($, titles[index]);
-      createFBNote(sessionID, data.title, data.message, function() {
+      createFBNote(sessionID, sessionData, data.title, data.message, function() {
         index++;
         postNoteFromBlog();
       });
@@ -216,12 +226,11 @@ function getBlogData($, elem) {
   return { 'title': title, 'message': message };
 }
 
-function createFBNote(sessionID, title, message, callback) {
+function createFBNote(sessionID, sessionData, title, message, callback) {
   var note = {
       subject: title
     , message: message
   };
-  var sessionData = app.SESSIONID_DATA_MAP[sessionID];
 
   graph
     .setAccessToken(sessionData.access_token)
@@ -244,9 +253,9 @@ function createFBNote(sessionID, title, message, callback) {
     );
 
     if (success) {
-     sessionData.notes_created++;
+      app.client.hincrby(sessionID, 'notes_created', 1);
     } else {
-      sessionData.notes_failed++;
+      app.client.hincrby(sessionID, 'notes_failed', 1);
     }
 
     callback();
