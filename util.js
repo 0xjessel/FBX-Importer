@@ -113,12 +113,12 @@ exports.processFile = function(sessionID) {
     // recursion so that we post the notes chronologically
     function parseZipEntry() {
       if (index < sortedZipEntries.length) {
-        app.client.hset(sessionID, 'current_index', index.toString());
+        app.client.hset(sessionID, 'current_index', (index + 1).toString());
         app.io.sockets.in(sessionID).emit(
           'file start',
           {
             filename: sortedZipEntries[index].entryName,
-            currentIndex: index
+            currentIndex: index + 1
           }
         );
 
