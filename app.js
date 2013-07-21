@@ -294,3 +294,10 @@ if (cluster.isMaster) {
     );
   });
 }
+
+// Listen for dying workers
+cluster.on('exit', function (worker) {
+    // Replace the dead worker
+    console.log('Worker ' + worker.id + ' has died :(');
+    cluster.fork();
+});
