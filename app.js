@@ -209,13 +209,12 @@ if (cluster.isMaster) {
 
   app.get('/status', function(req, res) {
     var sessionData = SESSIONID_DATA_MAP[req.sessionID];
-    /*
+
     if (!sessionData) {
       res.redirect('/');
       return;
     }
 
-  */
     mixpanel.track('Status Page Loaded');
 
     res.render(
@@ -234,7 +233,7 @@ if (cluster.isMaster) {
     io.set("polling duration", 10);
   });
 
-  io.set('authorization', function(data, accept){
+  io.set('authorization', function(data, accept) {
     if (!data.headers.cookie) {
       return accept('Session cookie required.', false);
     }
@@ -258,7 +257,6 @@ if (cluster.isMaster) {
 
   io.sockets.on('connection', function(socket) {
     var sessionID = socket.handshake.sessionID;
-
     socket.join(sessionID);
 
     socket.on('start processing', function() {
