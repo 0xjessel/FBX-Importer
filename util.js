@@ -75,7 +75,7 @@ exports.getPrivacySetting = function(access_token, callback) {
 };
 
 exports.processFile = function(sessionID) {
-  console.log('%d import is starting on worker %d', sessionID, app.cluster.worker.id);
+  console.log('%s import is starting on worker %d', sessionID, app.cluster.worker.id);
   
   app.client.hgetall(sessionID, function(err, sessionData) {
     if (!Object.keys(sessionData).length) {
@@ -135,17 +135,19 @@ exports.processFile = function(sessionID) {
         // delete the files
         fs.unlink(sessionData.filepath);
 
-        app.io.sockets.in(sessionID).emit(
-          'processing complete',
-          {
-            notesCreated: sessionData.notes_created,
-            notesFailed: sessionData.notes_failed
-          }
-        );
+        app.client.hmget(sessionID, 'notes_created', 'notes_failed', function(err, list) {
+          app.io.sockets.in(sessionID).emit(
+            'processing complete',
+            {
+              notesCreated: list[0]
+            , notesFailed: list[1]
+            }
+          );
+    
+          app.client.del(sessionID);
 
-        app.client.del(sessionID);
-
-        console.log('%d import completed on %d', sessionID, app.cluster.worker.id);
+          console.log('%s import completed on worker %d', sessionID, app.cluster.worker.id);
+        });
       }
     }
     parseZipEntry();
