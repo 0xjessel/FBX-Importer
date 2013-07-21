@@ -3,7 +3,6 @@
  */
 var cluster = require('cluster');
 
-
 // Code to run if we're in the master process
 if (cluster.isMaster) {
   // Count the machine's CPUs
@@ -78,6 +77,7 @@ if (cluster.isMaster) {
     app.use(express.session({
       store: sessionStore
     , secret: SECRET
+    , maxAge: 1800000
     }));
     app.set('views', __dirname + '/views');
     app.set('view engine', 'jade');
