@@ -77,7 +77,6 @@ if (cluster.isMaster) {
     app.use(express.session({
       store: sessionStore
     , secret: SECRET
-    , maxAge: 1800000
     }));
     app.set('views', __dirname + '/views');
     app.set('view engine', 'jade');
@@ -267,8 +266,8 @@ if (cluster.isMaster) {
         console.log('exception while processing file ' + e);
         console.trace();
 
-        fs.unlink(app.SESSIONID_DATA_MAP[sessionID].filepath);
-        delete app.SESSIONID_DATA_MAP[sessionID];
+        fs.unlink(SESSIONID_DATA_MAP[sessionID].filepath);
+        delete SESSIONID_DATA_MAP[sessionID];
       }
     });
   });
