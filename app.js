@@ -228,6 +228,7 @@ if (cluster.isMaster) {
   });
 
   io.configure(function() {
+    io.set('log level', 1);
     io.set('store', ioSessionStore);
     io.set("transports", ["xhr-polling"]);
     io.set("polling duration", 10);
@@ -252,8 +253,6 @@ if (cluster.isMaster) {
       return accept(null, true);
     });
   });
-
-  io.set('log level', 1);
 
   io.sockets.on('connection', function(socket) {
     var sessionID = socket.handshake.sessionID;
