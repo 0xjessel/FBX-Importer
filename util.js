@@ -81,8 +81,8 @@ exports.processFile = function(sessionID) {
     app.io.sockets.in(sessionID).emit(
       'resume processing',
       {
-        numFiles: sessionData.numFiles,
-        currentIndex: sessionData.currentIndex
+        numFiles: sessionData.num_files,
+        currentIndex: sessionData.current_index
       }
     );
     return;
@@ -95,11 +95,11 @@ exports.processFile = function(sessionID) {
   var sortedZipEntries = sortFiles(zipEntries);
 
   sessionData.started = true;
-  sessionData.numFiles = sortedZipEntries.length;
+  sessionData.num_files = sortedZipEntries.length;
 
   app.io.sockets.in(sessionID).emit(
     'init processing',
-    { numFiles: sessionData.numFiles }
+    { numFiles: sessionData.num_files }
   );
 
   var index = 0;
@@ -107,12 +107,12 @@ exports.processFile = function(sessionID) {
   // recursion so that we post the notes chronologically
   function parseZipEntry() {
     if (index < sortedZipEntries.length) {
-      sessionData.currentIndex = index;
+      sessionData.current_index = index;
       app.io.sockets.in(sessionID).emit(
         'file start',
         {
           filename: sortedZipEntries[index].entryName,
-          currentIndex: sessionData.currentIndex
+          currentIndex: sessionData.current_index
         }
       );
 

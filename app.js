@@ -2,6 +2,8 @@
  * Module dependencies.
  */
 var cluster = require('cluster');
+// map of session id to a variety of data related to a session
+var SESSIONID_DATA_MAP = exports.SESSIONID_DATA_MAP = {};
 
 // Code to run if we're in the master process
 if (cluster.isMaster) {
@@ -67,8 +69,6 @@ if (cluster.isMaster) {
   var sessionStore = new RedisStore({ client: redis });
   var ioSessionStore = new ioRedisStore({ redis: ioRedis, redisPub: pub, redisSub: sub, redisClient: redis });
   var mixpanel = exports.mixpanel = require('mixpanel').init(process.env.MIXPANEL || '555');
-  // map of session id to a variety of data related to a session
-  var SESSIONID_DATA_MAP = exports.SESSIONID_DATA_MAP = {};
 
   // Configuration
 
@@ -187,6 +187,7 @@ if (cluster.isMaster) {
         started: false,
         access_token: req.session.access_token
       };
+
       res.redirect('/status');
       return;
     } else {
@@ -209,7 +210,6 @@ if (cluster.isMaster) {
 
   app.get('/status', function(req, res) {
     var sessionData = SESSIONID_DATA_MAP[req.sessionID];
-    
     if (!sessionData) {
       res.redirect('/');
       return;
