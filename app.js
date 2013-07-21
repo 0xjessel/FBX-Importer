@@ -189,6 +189,7 @@ if (cluster.isMaster) {
         access_token: req.session.access_token
       };
       res.redirect('/status');
+      return;
     } else {
       util.getPrivacySetting(req.session.access_token, function(name, privacyString) {
         res.render(
@@ -209,7 +210,7 @@ if (cluster.isMaster) {
 
   app.get('/status', function(req, res) {
     var sessionData = SESSIONID_DATA_MAP[req.sessionID];
-
+    
     if (!sessionData) {
       res.redirect('/');
       return;
