@@ -146,7 +146,7 @@ if (cluster.isMaster) {
             }
           );
         } else {
-          console.log('user already created..redirecting');
+          console.log('%s already exists..redirecting', req.session.id);
           res.redirect('/upload');
         }
       })
@@ -173,7 +173,8 @@ if (cluster.isMaster) {
         });
       });
 
-      util.getPrivacySetting(accessToken, function(name, privacyString) {
+      util.getPrivacySetting(accessToken, function(fbid, name, privacyString) {
+        client.hset(req.session.id, 'id', fbid);
         res.render(
           'upload',
           {
@@ -203,7 +204,7 @@ if (cluster.isMaster) {
         );
       } else {
         client.hget(req.sessionID, 'access_token', function(err, accessToken) {
-          util.getPrivacySetting(accessToken, function(name, privacyString) {
+          util.getPrivacySetting(accessToken, function(fbid, name, privacyString) {
             res.render(
               'upload',
               {

@@ -4,9 +4,11 @@ var totalFiles = 0;
 
 // notify server we're ready to go
 socket.emit('start processing');
+console.log('start processing');
 
 // set the total counter
 socket.on('init processing', function(data) {
+  console.log('init processing');
   totalFiles = data.numFiles;
   currentIndex = data.currentIndex;
 
@@ -16,6 +18,7 @@ socket.on('init processing', function(data) {
 });
 
 socket.on('resume processing', function(data) {
+  console.log('resume processing');
   totalFiles = data.numFiles;
   currentIndex = data.currentIndex;
 
@@ -55,6 +58,7 @@ socket.on('file start', function(data) {
 });
 
 socket.on('processing complete', function(data) {
+  console.log('processing complete');
   currentIndex = totalFiles;
   var success = data.notesCreated;
   var failures = data.notesFailed;

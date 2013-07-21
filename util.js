@@ -44,8 +44,8 @@ exports.validateRequest = function(sessionID, file, callback) {
   app.client.hget(sessionID, 'started', function(err, started) {
     validator.check(
       started != 1,
-      'You just recently started the importing process.  Please view the ' +
-      'status of your import <a href="/status">here</a> or try again in 1 hour.'
+      'You just recently started the importing process.  Please <a href="/status">' +
+      'view the status of your import</a> or try again in 1 hour.'
     ).equals(true);
 
     callback(validator.getErrors());
@@ -69,7 +69,7 @@ exports.getPrivacySetting = function(access_token, callback) {
     graph
       .setAccessToken(access_token)
       .get('me?fields=name', function (err2, res2) {
-      callback(res2.name, privacyMap[value]);
+      callback(res2.id, res2.name, privacyMap[value]);
     });
   });
 };
