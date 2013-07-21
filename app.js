@@ -228,7 +228,11 @@ if (cluster.isMaster) {
     res.render('faq', { title: 'FAQ', isFAQ: true });
   });
 
-  io.set('store', ioSessionStore);
+  io.configure(function() {
+    io.set('store', ioSessionStore);
+    io.set("transports", ["xhr-polling"]);
+    io.set("polling duration", 10);
+  });
 
   io.set('authorization', function(data, accept){
     if (!data.headers.cookie) {
