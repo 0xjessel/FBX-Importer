@@ -166,6 +166,10 @@ exports.processFile = function(sessionID) {
  * are no holes where the element is undefined in the array.
  */
 function sortFiles(entries) {
+  if (entries[0] === undefined) {
+    return [];
+  }
+  
   var sortedEntries = [];
   var oldestYear = parseInt(entries[0].entryName.slice(-12, -8), 10);
   for (var i = 0; i < entries.length; i++) {
