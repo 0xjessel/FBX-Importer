@@ -246,12 +246,7 @@ if (cluster.isMaster) {
   io.configure(function() {
     io.set('log level', 3);
     io.set('store', ioSessionStore);
-    io.set('transports', [
-      'flashsocket'
-    , 'htmlfile'
-    , 'xhr-polling'
-    , 'jsonp-polling'
-    ]);
+    io.set('transports', ['xhr-polling']);
     io.set("polling duration", 10);
     /*
     io.set("transports", ["xhr-polling"]);
