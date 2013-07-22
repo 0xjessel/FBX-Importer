@@ -76,7 +76,7 @@ exports.getPrivacySetting = function(access_token, callback) {
 
 exports.processFile = function(sessionID) {
   console.log('%s import is starting on worker %d', sessionID, app.cluster.worker.id);
-  
+
   app.client.hgetall(sessionID, function(err, sessionData) {
     if (!Object.keys(sessionData).length) {
       return;
@@ -143,7 +143,7 @@ exports.processFile = function(sessionID) {
             , notesFailed: list[1]
             }
           );
-    
+
           app.client.del(sessionID);
 
           console.log('%s import completed on worker %d', sessionID, app.cluster.worker.id);
@@ -169,7 +169,7 @@ function sortFiles(entries) {
   if (entries[0] === undefined) {
     return [];
   }
-  
+
   var sortedEntries = [];
   var oldestYear = parseInt(entries[0].entryName.slice(-12, -8), 10);
   for (var i = 0; i < entries.length; i++) {
@@ -257,11 +257,12 @@ function createFBNote(sessionID, sessionData, title, message, callback) {
         app.mixpanel.people.increment(res2.id, 'notes_failed');
       }
     });
+    /*
     app.io.sockets.in(sessionID).emit(
       'create note',
       { title: title, response: res, success: success }
     );
-
+    */
     if (success) {
       app.client.hincrby(sessionID, 'notes_created', 1);
     } else {
