@@ -75,7 +75,7 @@ exports.getPrivacySetting = function(access_token, callback) {
 };
 
 exports.processFile = function(sessionID) {
-  console.log('%s import is starting on worker %d', sessionID, app.cluster.worker.id);
+  //console.log('%s import is starting on worker %d', sessionID, app.cluster.worker.id);
 
   app.client.hgetall(sessionID, function(err, sessionData) {
     if (!Object.keys(sessionData).length) {
@@ -146,7 +146,7 @@ exports.processFile = function(sessionID) {
 
           app.client.del(sessionID);
 
-          console.log('%s import completed on worker %d', sessionID, app.cluster.worker.id);
+         // console.log('%s import completed on worker %d', sessionID, app.cluster.worker.id);
         });
       }
     }

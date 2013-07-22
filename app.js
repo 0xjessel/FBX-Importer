@@ -1,19 +1,4 @@
-/**
- * Module dependencies.
- */
-var cluster = exports.cluster = require('cluster');
 
-// Code to run if we're in the master process
-if (cluster.isMaster) {
-  // Count the machine's CPUs
-  var cpuCount = require('os').cpus().length;
-
-  // Create a worker for each CPU
-  for (var i = 0; i < cpuCount; i += 1) {
-      cluster.fork();
-  }
-// Code to run if we're in a worker process
-} else {
   var express        = require('express')
     , connect        = require('connect')
     , RedisStore     = require('connect-redis')(express)
@@ -302,9 +287,3 @@ if (cluster.isMaster) {
   });
 }
 
-// Listen for dying workers
-cluster.on('exit', function (worker) {
-    // Replace the dead worker
-    console.log('Worker ' + worker.id + ' has died :(');
-    cluster.fork();
-});
