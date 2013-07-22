@@ -65,6 +65,8 @@ exports.getPrivacySetting = function(access_token, callback) {
   graph
     .setAccessToken(access_token)
     .fql(query, function(err, res) {
+    console.log(err);
+    console.log(res);
     var value = res.data[0].value;
     graph
       .setAccessToken(access_token)
