@@ -246,8 +246,10 @@ if (cluster.isMaster) {
   io.configure(function() {
     io.set('log level', 0);
     io.set('store', ioSessionStore);
+    /*
     io.set("transports", ["xhr-polling"]);
     io.set("polling duration", 10);
+    */
   });
 
   io.set('authorization', function(data, accept) {
