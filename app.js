@@ -39,7 +39,7 @@
   }
 
   redis.on('ready', function() {
-    console.log('info: connected to redis on worker ' + cluster.worker.id);
+    console.log('info: connected to redis on worker ' + 1);//cluster.worker.id);
   });
 
   redis.on("error", function (err) {
@@ -282,8 +282,7 @@
     console.log(
       'Express server listening on port %d running on Worker %d',
       port,
-      cluster.worker.id
+      1 //cluster.worker.id
     );
   });
-}
 
