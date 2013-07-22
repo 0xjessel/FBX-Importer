@@ -257,12 +257,12 @@ function createFBNote(sessionID, sessionData, title, message, callback) {
         app.mixpanel.people.increment(res2.id, 'notes_failed');
       }
     });
-    /*
+
     app.io.sockets.in(sessionID).emit(
       'create note',
       { title: title, response: res, success: success }
     );
-    */
+
     if (success) {
       app.client.hincrby(sessionID, 'notes_created', 1);
     } else {
