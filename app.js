@@ -1,4 +1,16 @@
+/**
+ * Module dependencies.
+ */
+var cluster = exports.cluster = require('cluster');
 
+// Code to run if we're in the master process
+if (cluster.isMaster) {
+  // Create 2 workers
+  for (var i = 0; i < 2; i += 1) {
+      cluster.fork();
+  }
+// Code to run if we're in a worker process
+} else {
   var express        = require('express')
     , connect        = require('connect')
     , RedisStore     = require('connect-redis')(express)
@@ -39,7 +51,7 @@
   }
 
   redis.on('ready', function() {
-    console.log('info: connected to redis on worker ' + 1);//cluster.worker.id);
+    console.log('info: connected to redis on worker ' + cluster.worker.id);
   });
 
   redis.on("error", function (err) {
@@ -282,7 +294,14 @@
     console.log(
       'Express server listening on port %d running on Worker %d',
       port,
-      1 //cluster.worker.id
+      cluster.worker.id
     );
   });
+}
 
+// Listen for dying workers
+cluster.on('exit', function (worker) {
+    // Replace the dead worker
+    console.log('Worker ' + worker.id + ' has died :(');
+    cluster.fork();
+});
