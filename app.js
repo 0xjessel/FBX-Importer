@@ -1,16 +1,4 @@
-/**
- * Module dependencies.
- */
-var cluster = exports.cluster = require('cluster');
 
-// Code to run if we're in the master process
-if (cluster.isMaster) {
-  // Create 2 workers
-  for (var i = 0; i < 2; i += 1) {
-      cluster.fork();
-  }
-// Code to run if we're in a worker process
-} else {
   var express        = require('express')
     , connect        = require('connect')
     , RedisStore     = require('connect-redis')(express)
@@ -25,7 +13,6 @@ if (cluster.isMaster) {
     , fs             = require('fs')
     , io             = exports.io = require('socket.io').listen(server)
   ;
-
 
   // redis config
   var redis, pub, sub, client;
@@ -51,7 +38,7 @@ if (cluster.isMaster) {
   }
 
   redis.on('ready', function() {
-    console.log('info: connected to redis on worker ' + cluster.worker.id);
+    console.log('info: connected to redis on worker ' + 1);//cluster.worker.id);
   });
 
   redis.on("error", function (err) {
@@ -241,7 +228,7 @@ if (cluster.isMaster) {
   });
 
   io.configure(function() {
-    io.set('log level', 3);
+    io.set('log level', 0);
     io.set('store', ioSessionStore);
     io.set('transports', ['xhr-polling']);
     io.set("polling duration", 10);
@@ -294,14 +281,6 @@ if (cluster.isMaster) {
     console.log(
       'Express server listening on port %d running on Worker %d',
       port,
-      cluster.worker.id
+      1 //cluster.worker.id
     );
   });
-}
-
-// Listen for dying workers
-cluster.on('exit', function (worker) {
-    // Replace the dead worker
-    console.log('Worker ' + worker.id + ' has died :(');
-    cluster.fork();
-});
