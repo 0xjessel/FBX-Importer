@@ -74,6 +74,7 @@ if (cluster.isMaster) {
     app.use(express.session({
       store: sessionStore
     , secret: SECRET
+    , maxAge: 3600000
     }));
     app.set('views', __dirname + '/views');
     app.set('view engine', 'jade');
