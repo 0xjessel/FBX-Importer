@@ -280,6 +280,6 @@
   server.listen(port, function() {
     console.log(
       'Express server listening on port %d',
-      port,
+      port
     );
   });
